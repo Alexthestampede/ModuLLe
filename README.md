@@ -36,6 +36,20 @@ pip install -e ".[claude]"   # For Anthropic Claude
 pip install -e ".[all]"      # For all providers
 ```
 
+### First-Time Setup
+
+Run the interactive configuration wizard:
+
+```bash
+modulle-config
+```
+
+This will guide you through:
+1. Selecting your AI provider (Ollama, LM Studio, OpenAI, Gemini, or Claude)
+2. Testing connections and listing available models
+3. Configuring API keys (for cloud providers)
+4. Saving your settings to `~/.modulle.json`
+
 ### Basic Usage
 
 ```python
@@ -188,6 +202,52 @@ modulle/
 
 ## ⚙️ Configuration
 
+ModuLLe supports three configuration methods with priority order:
+
+1. **User config file** (`~/.modulle.json`) - Highest priority
+2. **Environment variables** - Medium priority
+3. **Code defaults** - Lowest priority
+
+### Interactive Configuration Wizard (Recommended)
+
+Run the interactive setup wizard to configure ModuLLe:
+
+```bash
+# First-time setup
+modulle-config
+
+# Or with Python
+python -m modulle.cli.config_wizard
+```
+
+The wizard will:
+- Help you choose an AI provider (Ollama, LM Studio, OpenAI, Gemini, or Claude)
+- Test connections to local servers
+- List available models and help you select them
+- Configure API keys for cloud providers
+- Save settings to `~/.modulle.json`
+
+### User Configuration File
+
+Create `~/.modulle.json` in your home directory:
+
+```json
+{
+  "provider": "ollama",
+  "ollama_base_url": "http://localhost:11434",
+  "ollama_text_model": "llama2",
+  "ollama_vision_model": "llava"
+}
+```
+
+See `.modulle.json.example` in the repository for a complete example with all providers.
+
+**Benefits:**
+- Easy to edit and version control
+- No need to set environment variables
+- Persists across sessions
+- Can be shared across projects
+
 ### Environment Variables
 
 ```bash
@@ -213,13 +273,35 @@ export CLAUDE_TEXT_MODEL="claude-3-5-haiku-20241022"
 ```python
 from modulle import create_ai_client
 
-# Override defaults
+# Override defaults in code
 _, processor, _ = create_ai_client(
     provider='ollama',
     text_model='mistral',  # Different model
     base_url='http://custom-server:11434'
 )
 ```
+
+### Inspecting Ollama Models
+
+List available Ollama models and their capabilities:
+
+```bash
+# Inspect models on default server
+modulle-inspect-ollama
+
+# Or specify a custom server
+modulle-inspect-ollama http://192.168.1.100:11434
+
+# Or with Python
+python -m modulle.cli.ollama_inspector
+```
+
+This shows:
+- Model names and sizes
+- Parameter counts
+- Context window sizes
+- Vision capabilities
+- Model families and formats
 
 ## 🧪 Testing
 
@@ -284,10 +366,11 @@ MIT License - Free for personal and commercial use
 ## 🚀 Getting Started
 
 1. **Install**: `pip install -e .`
-2. **Test**: `python3 test_basic.py`
-3. **Try examples**: `cd examples && python basic_usage.py`
-4. **Read**: `examples/article_summarizer.py` - See how to build real apps
-5. **Build**: Use ModuLLe's generic API to create your application!
+2. **Configure**: `modulle-config` (interactive wizard)
+3. **Test**: `python3 test_basic.py`
+4. **Try examples**: `cd examples && python basic_usage.py`
+5. **Read**: `examples/article_summarizer.py` - See how to build real apps
+6. **Build**: Use ModuLLe's generic API to create your application!
 
 ---
 

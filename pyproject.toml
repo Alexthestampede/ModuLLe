@@ -58,8 +58,12 @@ all = [
 "Documentation" = "https://github.com/yourusername/modulle#readme"
 "Source Code" = "https://github.com/yourusername/modulle"
 
+[project.scripts]
+modulle-config = "modulle.cli.config_wizard:main"
+modulle-inspect-ollama = "modulle.cli.ollama_inspector:main"
+
 [tool.setuptools]
-packages = ["modulle", "modulle.providers", "modulle.providers.ollama", "modulle.providers.lm_studio", "modulle.providers.openai", "modulle.providers.gemini", "modulle.providers.claude", "modulle.utils"]
+packages = ["modulle", "modulle.cli", "modulle.providers", "modulle.providers.ollama", "modulle.providers.lm_studio", "modulle.providers.openai", "modulle.providers.gemini", "modulle.providers.claude", "modulle.utils"]
 
 [tool.setuptools.package-data]
 modulle = ["py.typed"]

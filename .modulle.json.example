@@ -1,0 +1,43 @@
+{
+  "_comment": "ModuLLe User Configuration - Copy this file to ~/.modulle.json and customize",
+  "first_run_complete": true,
+  "provider": "ollama",
+
+  "_comment_ollama": "=== Ollama Configuration (local, free) ===",
+  "ollama_base_url": "http://localhost:11434",
+  "ollama_text_model": "llama2",
+  "ollama_vision_model": "llava",
+
+  "_comment_lm_studio": "=== LM Studio Configuration (local, free) ===",
+  "lm_studio_base_url": "http://localhost:1234",
+  "lm_studio_text_model": "local-model",
+  "lm_studio_vision_model": "local-model",
+
+  "_comment_openai": "=== OpenAI Configuration (cloud, paid) ===",
+  "openai_api_key": "sk-...",
+  "openai_text_model": "gpt-4o-mini",
+  "openai_vision_model": "gpt-4o",
+  "openai_base_url": "https://api.openai.com/v1",
+
+  "_comment_gemini": "=== Google Gemini Configuration (cloud, free tier + paid) ===",
+  "gemini_api_key": "AIza...",
+  "gemini_text_model": "gemini-1.5-flash",
+  "gemini_vision_model": "gemini-1.5-flash",
+
+  "_comment_claude": "=== Anthropic Claude Configuration (cloud, paid) ===",
+  "anthropic_api_key": "sk-ant-...",
+  "claude_text_model": "claude-3-5-haiku-20241022",
+  "claude_vision_model": "claude-3-5-haiku-20241022",
+
+  "_comment_usage": "=== Usage ===",
+  "_comment_usage_1": "1. Copy this file to ~/.modulle.json",
+  "_comment_usage_2": "2. Set 'provider' to your chosen provider (ollama, lm_studio, openai, gemini, claude)",
+  "_comment_usage_3": "3. Configure the settings for your chosen provider",
+  "_comment_usage_4": "4. Remove or ignore sections for providers you don't use",
+  "_comment_usage_5": "5. Run 'modulle-config' for an interactive configuration wizard",
+
+  "_comment_priority": "=== Configuration Priority ===",
+  "_comment_priority_1": "1. ~/.modulle.json (this file) - highest priority",
+  "_comment_priority_2": "2. Environment variables (OLLAMA_TEXT_MODEL, etc.)",
+  "_comment_priority_3": "3. Defaults in modulle/config.py - lowest priority"
+}

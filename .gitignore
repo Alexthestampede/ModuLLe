@@ -150,6 +150,9 @@ logs/
 .env.local
 .env.*.local
 
+# User configuration
+.modulle.json
+
 # Project specific
 DailyFeedSanity/
 
