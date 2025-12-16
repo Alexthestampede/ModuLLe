@@ -1,0 +1,9 @@
+# Core dependencies
+requests>=2.31.0
+
+# Optional dependencies for cloud providers
+# Install as needed:
+# pip install modulle[openai]  # For OpenAI support
+# pip install modulle[gemini]  # For Google Gemini support
+# pip install modulle[claude]  # For Anthropic Claude support
+# pip install modulle[all]     # For all providers

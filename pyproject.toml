@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modulle"
+version = "0.1.0"
+description = "Modular LLM Provider Abstraction Layer - Unified interface for multiple AI providers"
+readme = "README.md"
+authors = [
+    {name = "Extracted from DailyFeedSanity"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["llm", "ai", "ollama", "openai", "gemini", "claude", "lm-studio", "abstraction"]
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+    "flake8>=4.0.0",
+]
+openai = [
+    "openai>=1.0.0",
+]
+gemini = [
+    "google-generativeai>=0.3.0",
+]
+claude = [
+    "anthropic>=0.18.0",
+]
+all = [
+    "openai>=1.0.0",
+    "google-generativeai>=0.3.0",
+    "anthropic>=0.18.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/modulle"
+"Bug Tracker" = "https://github.com/yourusername/modulle/issues"
+"Documentation" = "https://github.com/yourusername/modulle#readme"
+"Source Code" = "https://github.com/yourusername/modulle"
+
+[tool.setuptools]
+packages = ["modulle", "modulle.providers", "modulle.providers.ollama", "modulle.providers.lm_studio", "modulle.providers.openai", "modulle.providers.gemini", "modulle.providers.claude", "modulle.utils"]
+
+[tool.setuptools.package-data]
+modulle = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
