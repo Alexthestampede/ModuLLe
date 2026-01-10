@@ -214,6 +214,151 @@ class ClaudeClient(BaseAIClient):
                 logger.error(f"Response: {e.response.text}")
             return None
 
+    def chat_with_tools(
+        self,
+        model: str,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7
+    ) -> Dict[str, Any]:
+        """
+        Chat with tool calling support.
+
+        Claude's tool use allows the model to use external tools when needed.
+        The model returns tool_use blocks that your code should execute.
+
+        Args:
+            model: Model to use (must support tool use, e.g., claude-3-5-sonnet-20241022)
+            messages: List of message dicts with 'role' and 'content'
+            tools: List of tool definitions in Claude format
+            temperature: Generation temperature (0.0 to 1.0)
+
+        Returns:
+            Dict with keys:
+                - 'content': Generated text (if any)
+                - 'tool_calls': List of tool calls (if model wants to call tools)
+                - 'finish_reason': Why generation stopped ('stop' or 'tool_calls')
+                - 'message': Full response data from Claude
+
+        Example:
+            >>> tools = [{"name": "search_web", "description": "...", "input_schema": {...}}]
+            >>> result = client.chat_with_tools(model, messages, tools)
+            >>> if result['tool_calls']:
+            ...     for call in result['tool_calls']:
+            ...         # Execute tool and add result to messages
+            ...         pass
+        """
+        try:
+            url = f"{self.base_url}/messages"
+            headers = self._get_headers()
+
+            # Extract system prompt if present
+            system_prompt = None
+            claude_messages = []
+
+            for msg in messages:
+                role = msg.get('role', 'user')
+                content = msg.get('content', '')
+
+                if role == 'system':
+                    system_prompt = content
+                elif role == 'tool':
+                    # Claude format for tool results
+                    claude_messages.append({
+                        "role": "user",
+                        "content": [{
+                            "type": "tool_result",
+                            "tool_use_id": msg.get('tool_use_id', ''),
+                            "content": content
+                        }]
+                    })
+                elif role == 'assistant' and msg.get('tool_calls'):
+                    # Convert our format to Claude's tool_use blocks
+                    tool_use_blocks = []
+                    for tc in msg['tool_calls']:
+                        tool_use_blocks.append({
+                            "type": "tool_use",
+                            "id": tc['id'],
+                            "name": tc['name'],
+                            "input": tc['arguments']
+                        })
+                    claude_messages.append({
+                        "role": "assistant",
+                        "content": tool_use_blocks
+                    })
+                else:
+                    claude_messages.append({
+                        "role": role,
+                        "content": content
+                    })
+
+            payload = {
+                "model": model,
+                "max_tokens": 4096,  # Higher for tool use scenarios
+                "temperature": temperature,
+                "messages": claude_messages,
+                "tools": tools
+            }
+
+            if system_prompt:
+                payload["system"] = system_prompt
+
+            logger.debug(f"Sending chat with tools request to Claude model: {model}")
+            logger.debug(f"Available tools: {[t['name'] for t in tools]}")
+
+            response = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT * 3)
+            response.raise_for_status()
+
+            data = response.json()
+
+            # Parse response
+            content_text = ""
+            tool_calls = []
+
+            if 'content' in data:
+                for block in data['content']:
+                    if block.get('type') == 'text':
+                        content_text += block.get('text', '')
+                    elif block.get('type') == 'tool_use':
+                        logger.debug(f"Model requested tool call: {block.get('name')}")
+                        tool_calls.append({
+                            'id': block.get('id', ''),
+                            'name': block.get('name', ''),
+                            'arguments': block.get('input', {})
+                        })
+
+            finish_reason = 'tool_calls' if tool_calls else 'stop'
+            if data.get('stop_reason') == 'tool_use':
+                finish_reason = 'tool_calls'
+
+            logger.debug(f"Generated {len(content_text)} characters, finish_reason: {finish_reason}")
+
+            return {
+                'content': content_text if content_text else None,
+                'tool_calls': tool_calls,
+                'finish_reason': finish_reason,
+                'message': data
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Claude chat with tools failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in Claude chat with tools: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+
     def generate_with_image(self, prompt: str, image_data: str,
                            system: Optional[str] = None, temperature: float = 0.1,
                            model: Optional[str] = None, max_tokens: int = 2048,

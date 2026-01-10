@@ -183,3 +183,121 @@ class LMStudioClient(BaseAIClient):
         except Exception as e:
             logger.error(f"Unexpected error in LM Studio chat: {e}")
             return None
+
+    def chat_with_tools(
+        self,
+        model: str,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7
+    ) -> Dict[str, Any]:
+        """
+        Chat with tool calling support.
+
+        LM Studio uses OpenAI-compatible API for function calling.
+        The model can choose to call tools when needed.
+
+        Args:
+            model: Model name to use (must support function calling)
+            messages: List of message dicts with 'role' and 'content'
+            tools: List of tool definitions in OpenAI format
+            temperature: Generation temperature
+
+        Returns:
+            Dict with keys:
+                - 'content': Generated text (if any)
+                - 'tool_calls': List of tool calls (if model wants to call tools)
+                - 'finish_reason': Why generation stopped ('stop' or 'tool_calls')
+                - 'message': Full message dict from LM Studio
+
+        Example:
+            >>> tools = [{"type": "function", "function": {...}}]
+            >>> result = client.chat_with_tools(model, messages, tools)
+            >>> if result['tool_calls']:
+            ...     for call in result['tool_calls']:
+            ...         # Execute tool and add result to messages
+            ...         pass
+        """
+        try:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "tools": tools,
+                "temperature": temperature,
+                "stream": False
+            }
+
+            logger.debug(f"Sending chat with tools request to LM Studio model: {model}")
+            logger.debug(f"Available tools: {[t['function']['name'] for t in tools]}")
+
+            response = requests.post(
+                f"{self.api_url}/chat/completions",
+                json=payload,
+                timeout=REQUEST_TIMEOUT * 3
+            )
+            response.raise_for_status()
+
+            data = response.json()
+
+            choices = data.get('choices', [])
+            if not choices:
+                logger.error("No choices in LM Studio response")
+                return {
+                    'content': None,
+                    'tool_calls': [],
+                    'finish_reason': 'error',
+                    'message': None
+                }
+
+            choice = choices[0]
+            message = choice.get('message', {})
+            content = message.get('content', '')
+            finish_reason = choice.get('finish_reason', 'stop')
+
+            # Parse tool calls (OpenAI format)
+            tool_calls = []
+            if message.get('tool_calls'):
+                logger.debug(f"Model requested {len(message['tool_calls'])} tool call(s)")
+                for tc in message['tool_calls']:
+                    import json
+                    function = tc.get('function', {})
+                    # Parse arguments from JSON string
+                    arguments = function.get('arguments', '{}')
+                    if isinstance(arguments, str):
+                        try:
+                            arguments = json.loads(arguments)
+                        except json.JSONDecodeError:
+                            logger.error(f"Failed to parse tool arguments: {arguments}")
+                            arguments = {}
+
+                    tool_calls.append({
+                        'id': tc.get('id', ''),
+                        'name': function.get('name', ''),
+                        'arguments': arguments
+                    })
+
+            logger.debug(f"Generated {len(content) if content else 0} characters, finish_reason: {finish_reason}")
+
+            return {
+                'content': content if content else None,
+                'tool_calls': tool_calls,
+                'finish_reason': finish_reason,
+                'message': message
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"LM Studio chat with tools failed: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in LM Studio chat with tools: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }

@@ -220,3 +220,149 @@ class OpenAIClient(BaseAIClient):
         except Exception as e:
             logger.error(f"Unexpected error in OpenAI chat: {e}")
             return None
+
+    def chat_with_tools(
+        self,
+        model: str,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7
+    ) -> Dict[str, Any]:
+        """
+        Chat with tool calling support.
+
+        OpenAI's function calling allows the model to call external functions
+        when needed. The model will return tool calls that your code should execute.
+
+        Args:
+            model: Model ID to use (must support function calling)
+            messages: List of message dicts with 'role' and 'content' keys
+            tools: List of tool definitions in OpenAI format
+            temperature: Generation temperature (0.0 to 1.0)
+
+        Returns:
+            Dict with keys:
+                - 'content': Generated text (if any)
+                - 'tool_calls': List of tool calls (if model wants to call tools)
+                - 'finish_reason': Why generation stopped ('stop' or 'tool_calls')
+                - 'message': Full message dict from OpenAI
+
+        Example:
+            >>> tools = [{"type": "function", "function": {...}}]
+            >>> result = client.chat_with_tools(model, messages, tools)
+            >>> if result['tool_calls']:
+            ...     for call in result['tool_calls']:
+            ...         # Execute tool and add result to messages
+            ...         pass
+        """
+        try:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "tools": tools,
+                "temperature": temperature,
+                "max_tokens": 2000  # Higher for tool use scenarios
+            }
+
+            logger.debug(f"Sending chat with tools request to OpenAI model: {model}")
+            logger.debug(f"Available tools: {[t['function']['name'] for t in tools]}")
+
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers=self.headers,
+                json=payload,
+                timeout=REQUEST_TIMEOUT * 3
+            )
+
+            # Handle errors
+            if response.status_code == 429:
+                logger.error("OpenAI API rate limit exceeded")
+                return {
+                    'content': None,
+                    'tool_calls': [],
+                    'finish_reason': 'error',
+                    'message': None
+                }
+
+            if response.status_code == 401:
+                logger.error("OpenAI API authentication failed")
+                return {
+                    'content': None,
+                    'tool_calls': [],
+                    'finish_reason': 'error',
+                    'message': None
+                }
+
+            response.raise_for_status()
+
+            data = response.json()
+
+            if 'choices' not in data or len(data['choices']) == 0:
+                logger.error("No choices in OpenAI response")
+                return {
+                    'content': None,
+                    'tool_calls': [],
+                    'finish_reason': 'error',
+                    'message': None
+                }
+
+            choice = data['choices'][0]
+            message = choice['message']
+            content = message.get('content', '')
+            finish_reason = choice.get('finish_reason', 'stop')
+
+            # Parse tool calls
+            tool_calls = []
+            if message.get('tool_calls'):
+                logger.debug(f"Model requested {len(message['tool_calls'])} tool call(s)")
+                for tc in message['tool_calls']:
+                    import json
+                    function = tc.get('function', {})
+                    # Parse arguments from JSON string
+                    arguments = function.get('arguments', '{}')
+                    if isinstance(arguments, str):
+                        try:
+                            arguments = json.loads(arguments)
+                        except json.JSONDecodeError:
+                            logger.error(f"Failed to parse tool arguments: {arguments}")
+                            arguments = {}
+
+                    tool_calls.append({
+                        'id': tc.get('id', ''),
+                        'name': function.get('name', ''),
+                        'arguments': arguments
+                    })
+
+            logger.debug(f"Generated {len(content) if content else 0} characters, finish_reason: {finish_reason}")
+
+            return {
+                'content': content if content else None,
+                'tool_calls': tool_calls,
+                'finish_reason': finish_reason,
+                'message': message
+            }
+
+        except requests.exceptions.Timeout:
+            logger.error(f"OpenAI request timeout after {REQUEST_TIMEOUT * 3} seconds")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+        except requests.exceptions.RequestException as e:
+            logger.error(f"OpenAI chat with tools failed: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in OpenAI chat with tools: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }

@@ -208,6 +208,169 @@ class GeminiClient(BaseAIClient):
                 logger.error(f"Response: {e.response.text}")
             return None
 
+    def chat_with_tools(
+        self,
+        model: str,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7
+    ) -> Dict[str, Any]:
+        """
+        Chat with function calling support.
+
+        Gemini's function calling allows the model to call external functions
+        when needed. The model returns function_call parts that your code should execute.
+
+        Args:
+            model: Model to use (must support function calling, e.g., gemini-1.5-flash)
+            messages: List of message dicts with 'role' and 'content'
+            tools: List of tool definitions in Gemini format
+            temperature: Generation temperature (0.0 to 1.0)
+
+        Returns:
+            Dict with keys:
+                - 'content': Generated text (if any)
+                - 'tool_calls': List of tool calls (if model wants to call tools)
+                - 'finish_reason': Why generation stopped ('stop' or 'tool_calls')
+                - 'message': Full response data from Gemini
+
+        Example:
+            >>> tools = [{"name": "search_web", "description": "...", "parameters": {...}}]
+            >>> result = client.chat_with_tools(model, messages, tools)
+            >>> if result['tool_calls']:
+            ...     for call in result['tool_calls']:
+            ...         # Execute tool and add result to messages
+            ...         pass
+        """
+        try:
+            url = f"{self.base_url}/models/{model}:generateContent"
+            params = {"key": self.api_key}
+
+            # Convert messages to Gemini format
+            contents = []
+            system_instruction = None
+
+            for msg in messages:
+                role = msg.get('role', 'user')
+                content = msg.get('content', '')
+
+                if role == 'system':
+                    system_instruction = {"parts": [{"text": content}]}
+                elif role == 'tool':
+                    # Gemini format for function responses
+                    contents.append({
+                        "role": "function",
+                        "parts": [{
+                            "functionResponse": {
+                                "name": msg.get('name', ''),
+                                "response": {
+                                    "result": content
+                                }
+                            }
+                        }]
+                    })
+                elif role == 'assistant' and msg.get('tool_calls'):
+                    # Convert our format to Gemini's function call format
+                    function_call_parts = []
+                    for tc in msg['tool_calls']:
+                        function_call_parts.append({
+                            "functionCall": {
+                                "name": tc['name'],
+                                "args": tc['arguments']
+                            }
+                        })
+                    contents.append({
+                        "role": "model",
+                        "parts": function_call_parts
+                    })
+                else:
+                    # Map assistant to model
+                    gemini_role = 'model' if role == 'assistant' else 'user'
+                    contents.append({
+                        "role": gemini_role,
+                        "parts": [{"text": content}]
+                    })
+
+            # Build tool declarations for Gemini
+            function_declarations = []
+            for tool in tools:
+                function_declarations.append({
+                    "name": tool['name'],
+                    "description": tool['description'],
+                    "parameters": tool['parameters']
+                })
+
+            payload = {
+                "contents": contents,
+                "tools": [{
+                    "functionDeclarations": function_declarations
+                }],
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": 4096
+                }
+            }
+
+            if system_instruction:
+                payload["systemInstruction"] = system_instruction
+
+            logger.debug(f"Sending chat with tools request to Gemini model: {model}")
+            logger.debug(f"Available tools: {[t['name'] for t in tools]}")
+
+            response = requests.post(url, params=params, json=payload, timeout=REQUEST_TIMEOUT * 3)
+            response.raise_for_status()
+
+            data = response.json()
+
+            # Parse response
+            content_text = ""
+            tool_calls = []
+
+            if 'candidates' in data and len(data['candidates']) > 0:
+                candidate = data['candidates'][0]
+                if 'content' in candidate and 'parts' in candidate['content']:
+                    for part in candidate['content']['parts']:
+                        if 'text' in part:
+                            content_text += part['text']
+                        elif 'functionCall' in part:
+                            func_call = part['functionCall']
+                            logger.debug(f"Model requested function call: {func_call.get('name')}")
+                            tool_calls.append({
+                                'id': f"call_{len(tool_calls)}",  # Gemini doesn't provide IDs
+                                'name': func_call.get('name', ''),
+                                'arguments': func_call.get('args', {})
+                            })
+
+            finish_reason = 'tool_calls' if tool_calls else 'stop'
+
+            logger.debug(f"Generated {len(content_text)} characters, finish_reason: {finish_reason}")
+
+            return {
+                'content': content_text if content_text else None,
+                'tool_calls': tool_calls,
+                'finish_reason': finish_reason,
+                'message': data
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Gemini chat with tools failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in Gemini chat with tools: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+
     def generate_with_image(self, prompt: str, image_data: str,
                            system: Optional[str] = None, temperature: float = 0.1,
                            model: Optional[str] = None, mime_type: str = "image/jpeg") -> Optional[str]:

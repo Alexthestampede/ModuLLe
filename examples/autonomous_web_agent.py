@@ -12,11 +12,15 @@ The agent can:
 3. Synthesize information from multiple sources
 4. Decide when it has enough information to answer
 
-This requires a model that supports tool calling (like PickMeAsDefault).
+This works with all ModuLLe providers that support tool calling:
+- Ollama (PickMeAsDefault and other tool-capable models)
+- OpenAI (gpt-4o, gpt-4o-mini, etc.)
+- Claude (claude-3-5-sonnet-20241022, etc.)
+- Gemini (gemini-1.5-flash, gemini-1.5-pro, etc.)
+- LM Studio (depends on loaded model)
 """
 
 import sys
-from modulle.providers.ollama.client import OllamaClient
 from modulle.web import WebAccessor
 from modulle.web.tools import SearchWebTool, FetchPageTool
 from modulle.tools import ToolRegistry
@@ -27,19 +31,81 @@ def print_separator(char="="):
     print("\n" + char * 80 + "\n")
 
 
+def get_provider_client(provider, model):
+    """
+    Get the appropriate client for the specified provider.
+
+    Args:
+        provider: Provider name ('ollama', 'openai', 'claude', 'gemini', 'lm_studio')
+        model: Model name to use
+
+    Returns:
+        Tuple of (client, tool_format_method)
+    """
+    if provider == 'ollama':
+        from modulle.providers.ollama.client import OllamaClient
+        client = OllamaClient()
+        return client, 'to_ollama_format'
+
+    elif provider == 'openai':
+        from modulle.providers.openai.client import OpenAIClient
+        client = OpenAIClient()
+        return client, 'to_openai_format'
+
+    elif provider == 'claude':
+        from modulle.providers.claude.client import ClaudeClient
+        client = ClaudeClient()
+        return client, 'to_claude_format'
+
+    elif provider == 'gemini':
+        from modulle.providers.gemini.client import GeminiClient
+        client = GeminiClient()
+        return client, 'to_gemini_format'
+
+    elif provider == 'lm_studio':
+        from modulle.providers.lm_studio.client import LMStudioClient
+        client = LMStudioClient()
+        return client, 'to_openai_format'  # LM Studio uses OpenAI format
+
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+
+
 def main():
     """Run autonomous web agent example."""
     print("ModuLLe Autonomous Web Agent")
     print("The LLM will decide when to search and fetch pages")
     print_separator()
 
-    # Configuration
-    MODEL = "PickMeAsDefault"  # Model with tool calling support
+    # Configuration - Change these to match your setup
+    PROVIDER = 'ollama'  # Options: 'ollama', 'openai', 'claude', 'gemini', 'lm_studio'
+
+    # Model selection per provider
+    MODELS = {
+        'ollama': 'PickMeAsDefault',
+        'openai': 'gpt-4o-mini',
+        'claude': 'claude-3-5-sonnet-20241022',
+        'gemini': 'gemini-1.5-flash',
+        'lm_studio': 'local-model'  # Whatever model you have loaded
+    }
+
+    MODEL = MODELS.get(PROVIDER, 'PickMeAsDefault')
     MAX_ITERATIONS = 10  # Max agent iterations to prevent infinite loops
 
     # Initialize components
     print("Setting up autonomous agent...")
-    client = OllamaClient()
+    print(f"Provider: {PROVIDER}")
+    print(f"Model: {MODEL}")
+
+    try:
+        client, tool_format = get_provider_client(PROVIDER, MODEL)
+    except Exception as e:
+        print(f"✗ Failed to initialize {PROVIDER} client: {e}")
+        print("\nMake sure:")
+        print("- Provider is running (for Ollama/LM Studio)")
+        print("- API keys are set (for OpenAI/Claude/Gemini)")
+        return 1
+
     web = WebAccessor()
 
     # Create and register tools
@@ -84,10 +150,13 @@ def main():
         print(f"--- Agent Iteration {iteration} ---\n")
 
         # Get LLM response (may include tool calls)
+        # Use the appropriate tool format for this provider
+        tools_formatted = getattr(registry, tool_format)()
+
         response = client.chat_with_tools(
             model=MODEL,
             messages=messages,
-            tools=registry.to_ollama_format(),
+            tools=tools_formatted,
             temperature=0.7
         )
 
@@ -130,11 +199,18 @@ def main():
                     })
 
                     # Add tool result message
-                    messages.append({
+                    # Different providers need different formats
+                    tool_result_msg = {
                         "role": "tool",
                         "content": result,
                         "name": tool_name
-                    })
+                    }
+
+                    # Claude needs tool_use_id
+                    if PROVIDER == 'claude':
+                        tool_result_msg['tool_use_id'] = tool_call['id']
+
+                    messages.append(tool_result_msg)
 
                 except Exception as e:
                     print(f"     ✗ Error: {e}")
