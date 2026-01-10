@@ -28,6 +28,10 @@ keywords = ["llm", "ai", "ollama", "openai", "gemini", "claude", "lm-studio", "a
 requires-python = ">=3.8"
 dependencies = [
     "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "html2text>=2020.1.16",
+    "ddgs>=4.0.0",
+    "lxml>=4.9.0",
 ]
 
 [project.optional-dependencies]
@@ -63,7 +67,7 @@ modulle-config = "modulle.cli.config_wizard:main"
 modulle-inspect-ollama = "modulle.cli.ollama_inspector:main"
 
 [tool.setuptools]
-packages = ["modulle", "modulle.cli", "modulle.providers", "modulle.providers.ollama", "modulle.providers.lm_studio", "modulle.providers.openai", "modulle.providers.gemini", "modulle.providers.claude", "modulle.utils"]
+packages = ["modulle", "modulle.cli", "modulle.providers", "modulle.providers.ollama", "modulle.providers.lm_studio", "modulle.providers.openai", "modulle.providers.gemini", "modulle.providers.claude", "modulle.utils", "modulle.web"]
 
 [tool.setuptools.package-data]
 modulle = ["py.typed"]

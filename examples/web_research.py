@@ -28,7 +28,7 @@ def main():
 
     # Configuration - Change these to match your setup
     PROVIDER = 'ollama'  # Options: 'ollama', 'openai', 'gemini', 'claude', 'lm_studio'
-    TEXT_MODEL = 'llama2'  # Change based on your provider
+    TEXT_MODEL = 'cogito:3b'  # Change based on your provider
 
     # For cloud providers, you'll need API keys:
     # export OPENAI_API_KEY="your-key"
