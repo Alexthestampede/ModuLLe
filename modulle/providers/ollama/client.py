@@ -1,7 +1,9 @@
 """
 Base Ollama client for RSS Feed Processor
 """
+import json
 import requests
+from typing import List, Dict, Any, Optional
 from modulle.utils.logging_config import get_logger
 from modulle.config import OLLAMA_BASE_URL, REQUEST_TIMEOUT
 
@@ -169,3 +171,119 @@ class OllamaClient:
         except Exception as e:
             logger.error(f"Unexpected error in Ollama chat: {e}")
             return None
+
+    def chat_with_tools(
+        self,
+        model: str,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7
+    ) -> Dict[str, Any]:
+        """
+        Chat with tool calling support.
+
+        Ollama supports tool calling in compatible models. The model can
+        choose to call tools, and the results can be fed back into the
+        conversation.
+
+        Args:
+            model: Model name to use (must support tool calling)
+            messages: List of message dicts with 'role' and 'content'
+            tools: List of tool definitions in Ollama format
+            temperature: Generation temperature
+
+        Returns:
+            Dict with keys:
+                - 'content': Generated text (if any)
+                - 'tool_calls': List of tool calls (if model wants to call tools)
+                - 'finish_reason': Why generation stopped ('stop' or 'tool_calls')
+                - 'message': Full message dict from Ollama
+
+        Example:
+            >>> tools = [{"type": "function", "function": {...}}]
+            >>> result = client.chat_with_tools(model, messages, tools)
+            >>> if result['tool_calls']:
+            ...     for call in result['tool_calls']:
+            ...         # Execute tool and add result to messages
+            ...         pass
+        """
+        try:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "tools": tools,
+                "stream": False,
+                "options": {
+                    "temperature": temperature
+                }
+            }
+
+            logger.debug(f"Sending chat with tools request to Ollama model: {model}")
+            logger.debug(f"Available tools: {[t['function']['name'] for t in tools]}")
+
+            response = requests.post(
+                f"{self.api_url}/chat",
+                json=payload,
+                timeout=REQUEST_TIMEOUT * 3
+            )
+
+            # Check for errors
+            if not response.ok:
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get('error', f"HTTP {response.status_code}")
+                    logger.error(f"Ollama chat with tools failed: {error_msg}")
+                except Exception:
+                    logger.error(f"Ollama chat with tools failed: HTTP {response.status_code}")
+                return {
+                    'content': None,
+                    'tool_calls': [],
+                    'finish_reason': 'error',
+                    'message': None
+                }
+
+            data = response.json()
+            message = data.get('message', {})
+            content = message.get('content', '').strip()
+            tool_calls_raw = message.get('tool_calls', [])
+
+            # Parse tool calls
+            tool_calls = []
+            if tool_calls_raw:
+                logger.debug(f"Model requested {len(tool_calls_raw)} tool call(s)")
+                for tc in tool_calls_raw:
+                    function = tc.get('function', {})
+                    tool_calls.append({
+                        'id': tc.get('id', f"call_{len(tool_calls)}"),
+                        'name': function.get('name', ''),
+                        'arguments': function.get('arguments', {})
+                    })
+
+            # Determine finish reason
+            finish_reason = 'tool_calls' if tool_calls else 'stop'
+
+            logger.debug(f"Generated {len(content)} characters, finish_reason: {finish_reason}")
+
+            return {
+                'content': content if content else None,
+                'tool_calls': tool_calls,
+                'finish_reason': finish_reason,
+                'message': message
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ollama chat with tools failed: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in Ollama chat with tools: {e}")
+            return {
+                'content': None,
+                'tool_calls': [],
+                'finish_reason': 'error',
+                'message': None
+            }

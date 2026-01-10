@@ -67,7 +67,7 @@ modulle-config = "modulle.cli.config_wizard:main"
 modulle-inspect-ollama = "modulle.cli.ollama_inspector:main"
 
 [tool.setuptools]
-packages = ["modulle", "modulle.cli", "modulle.providers", "modulle.providers.ollama", "modulle.providers.lm_studio", "modulle.providers.openai", "modulle.providers.gemini", "modulle.providers.claude", "modulle.utils", "modulle.web"]
+packages = ["modulle", "modulle.cli", "modulle.providers", "modulle.providers.ollama", "modulle.providers.lm_studio", "modulle.providers.openai", "modulle.providers.gemini", "modulle.providers.claude", "modulle.utils", "modulle.web", "modulle.tools"]
 
 [tool.setuptools.package-data]
 modulle = ["py.typed"]
