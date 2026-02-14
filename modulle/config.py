@@ -20,7 +20,7 @@ DEFAULT_MAX_TOKENS = None  # Let the provider decide
 
 # HTTP request settings (for cloud APIs and fetching resources)
 USER_AGENT = 'ModuLLe/0.2.0 (AI Provider Abstraction)'
-REQUEST_TIMEOUT = 30  # seconds
+REQUEST_TIMEOUT = int(os.getenv('MODULLE_REQUEST_TIMEOUT', '60'))
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds
 RETRY_BACKOFF = 2  # multiplier for exponential backoff
