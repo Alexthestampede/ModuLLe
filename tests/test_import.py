@@ -7,7 +7,7 @@ import pytest
 def test_import_modulle():
     """Test that the main package can be imported."""
     import modulle
-    assert modulle.__version__ == "0.1.0"
+    assert modulle.__version__ == "0.1.1"
 
 
 def test_import_base_classes():

@@ -8,17 +8,29 @@ module strips reasoning traces so applications receive only the final answer.
 import re
 from typing import Optional
 
-# Closed thinking blocks: <think>...</think> (Qwen3, DeepSeek-R1, GLM)
-_THINK_BLOCK_RE = re.compile(
-    r"<think>.*?</think>",
-    re.DOTALL | re.IGNORECASE,
-)
+# Thinking tag patterns. Angle chars are written as \x3c/\x3e so tooling
+# cannot mangle them. Tolerate whitespace/attributes (<think x=1>, /think >)
+# and HTML-escaped forms (&lt;think&gt; / &lt;/think&gt;) that arrive
+# pre-escaped from renderers. Matches open and close variants.
+_THINK_OPEN_TAG_RE = re.compile(r"(?:&lt;|\x3c)\s*think\b[^\x3e]*?(?:&gt;|\x3e)",
+                                re.IGNORECASE)
+_THINK_CLOSE_TAG_RE = re.compile(r"(?:&lt;|\x3c)\s*/\s*think[^\x3e]*?(?:&gt;|\x3e)",
+                                 re.IGNORECASE)
+_THINK_OPEN_TAG = _THINK_OPEN_TAG_RE.pattern
+_THINK_CLOSE_TAG = _THINK_CLOSE_TAG_RE.pattern
 
-# Unclosed thinking block: <think> with no closing tag
-_THINK_OPEN_RE = re.compile(
-    r"<think>.*",
-    re.DOTALL | re.IGNORECASE,
-)
+# Closed thinking blocks: open...close pair (Qwen3, DeepSeek-R1, GLM)
+_THINK_BLOCK_RE = re.compile(_THINK_OPEN_TAG + r".*?" + _THINK_CLOSE_TAG,
+                              re.DOTALL | re.IGNORECASE)
+
+# Unclosed thinking block: open tag with no closing tag
+_THINK_OPEN_RE = re.compile(_THINK_OPEN_TAG + r".*", re.DOTALL | re.IGNORECASE)
+
+# Closing tag with no matching opener: the model reasoned as plain text and
+# only marked where the thinking ended. Everything up to and including the
+# closer is reasoning.
+_THINK_LONE_CLOSE_RE = re.compile(r"\A.*?" + _THINK_CLOSE_TAG,
+                                  re.DOTALL | re.IGNORECASE)
 
 # Common chain-of-thought openers seen on Qwen3.8 / Nemotron / Ornith family
 # models when tags are missing entirely (e.g. "We need answer user: ...")
@@ -55,6 +67,11 @@ def strip_think_tags(text: Optional[str]) -> str:
         return ""
     cleaned = _THINK_BLOCK_RE.sub("", text)
     cleaned = _THINK_OPEN_RE.sub("", cleaned)
+    # Closing tag(s) with no opener anywhere: the opener was lost (model
+    # never emitted it, or a stream/server stripped it). Everything before
+    # each closer is part of the reasoning trace.
+    while _THINK_CLOSE_TAG_RE.search(cleaned) and not _THINK_OPEN_TAG_RE.search(cleaned):
+        cleaned = _THINK_LONE_CLOSE_RE.sub("", cleaned, count=1)
     return cleaned
 
 

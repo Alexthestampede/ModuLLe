@@ -137,6 +137,26 @@ def main():
           strip_think_tags(THINK_OPEN + "x" + THINK_CLOSE + "result only"),
           "result only")
 
+    # 14. THE Disenchanted leak: closing tag with no opener — model reasoned
+    #    as plain text and only emitted </think> at the end of its thinking.
+    t14 = "Reasoning about the user's image. I should respond warmly." \
+          + THINK_CLOSE + "\n\nThis is the final answer."
+    check("lone closing tag -> prefix cut, answer kept", clean_response(t14),
+          "This is the final answer.")
+
+    # 15. Tag variants: attributes and inner whitespace
+    t15 = "<think foo=1>x< /think >Answer."
+    check("tag with attributes/whitespace -> stripped",
+          strip_think_tags(t15), "Answer.")
+
+    # 16. HTML-escaped tag pair (renderers escape angle brackets)
+    t16 = "&lt;think&gt;r&lt;/think&gt;Answer here."
+    check("escaped think pair -> stripped", strip_think_tags(t16), "Answer here.")
+
+    # 17. HTML-escaped lone closer
+    t17 = "reasoning &lt;/think&gt;\n\nAnswer."
+    check("escaped lone closer -> prefix cut", clean_response(t17), "Answer.")
+
     print()
     if failures:
         print(f"{failures} test(s) FAILED")
