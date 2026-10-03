@@ -50,6 +50,11 @@ Pre-built tools for autonomous web access:
 - **SearchWebTool** - LLM can search the web
 - **FetchPageTool** - LLM can fetch and read pages
 
+Pre-built zero-dependency tools in `modulle/tools/time.py`:
+- **CurrentTimeTool** - LLM can get the current local time (with UTC offset and weekday)
+- **CurrentDateTool** - LLM can get today's date
+- **CurrentDateTimeTool** - Both in one call (optional `tz` argument, e.g. `datetime.timezone.utc`)
+
 **Example:**
 ```python
 from modulle.web import WebAccessor
