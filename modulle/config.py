@@ -20,7 +20,7 @@ DEFAULT_TEMPERATURE = 0.7  # Balanced between deterministic and creative
 DEFAULT_MAX_TOKENS = None  # Let the provider decide
 
 # HTTP request settings (for cloud APIs and fetching resources)
-USER_AGENT = "ModuLLe/20261003.1 (AI Provider Abstraction)"
+USER_AGENT = "ModuLLe/20261003.2 (AI Provider Abstraction)"
 REQUEST_TIMEOUT = int(os.getenv("MODULLE_REQUEST_TIMEOUT", "60"))
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds

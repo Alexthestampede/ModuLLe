@@ -26,5 +26,8 @@ Example:
 
 from .accessor import WebAccessor
 from .search import SearchBackend
+from .searxng import SearxngSearcher, DEFAULT_SEARXNG_URL
+from .searxng_tools import SearchSearxngTool
 
-__all__ = ['WebAccessor', 'SearchBackend']
+__all__ = ['WebAccessor', 'SearchBackend', 'SearxngSearcher',
+           'SearchSearxngTool', 'DEFAULT_SEARXNG_URL']
