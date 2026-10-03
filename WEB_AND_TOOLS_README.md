@@ -98,6 +98,7 @@ python examples/autonomous_web_agent.py
 
 ### User Guides
 - **[docs/CUSTOM_TOOLS.md](docs/CUSTOM_TOOLS.md)** - How to create custom tools
+- **[docs/DECISION_MODELS.md](docs/DECISION_MODELS.md)** - Decision models (clef / clef-flash) via Ollama's `/v1/systemone`
 - **[docs/ANDROID.md](docs/ANDROID.md)** - Running on Android devices
 
 ### What You Can Build

@@ -315,6 +315,27 @@ python basic_usage.py
 python article_summarizer.py
 ```
 
+## ⚡ Decision Models (Ollama)
+
+Ollama decision models like **clef-flash** answer typed questions about a state
+in a single fast pass, via the `system_one()` method on `OllamaClient`
+(requires Ollama >= 0.35.1). They do not use the generic `generate()`/`chat()` API.
+
+```python
+from modulle.providers.ollama import OllamaClient
+
+client = OllamaClient(base_url="http://localhost:11434")
+result = client.system_one(
+    model="clef-flash",
+    state="Checkout has been failing for every customer for the last hour.",
+    questions={"urgent": {"type": "noul", "instructions": "Is this urgent?"}},
+)
+print(result["answers"]["urgent"]["noul"])  # e.g. 0.95
+```
+
+See [docs/DECISION_MODELS.md](docs/DECISION_MODELS.md) for all question types
+(`noul`, `choice`, `score`), image input, and `examples/decision_model.py`.
+
 ## 📊 Provider Comparison
 
 | Feature | Ollama | LM Studio | OpenAI | Gemini | Claude |

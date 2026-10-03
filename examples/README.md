@@ -37,6 +37,23 @@ python basic_usage.py
 - Lists available models
 - Generates a summary with title and clickbait detection
 
+### decision_model.py
+
+Demonstrates Ollama decision models (clef / clef-flash) via the `/v1/systemone` endpoint.
+
+**Usage:**
+```bash
+# Requires Ollama >= 0.35.1 and a decision model
+ollama pull clef-flash
+
+# Run against your server
+OLLAMA_BASE_URL=http://your-server:11434 python decision_model.py
+```
+
+**What it does:**
+- Judges a support-ticket `state` with three typed questions (`noul`, `choice`, `score`)
+- Prints the answers with probabilities
+
 ### multi_provider.py
 
 Shows how to use the same code with different AI providers.
