@@ -18,20 +18,30 @@ class OllamaClient:
     Base client for interacting with Ollama API.
     """
 
-    def __init__(self, base_url=OLLAMA_BASE_URL, request_timeout: Optional[int] = None):
+    def __init__(
+        self,
+        base_url=OLLAMA_BASE_URL,
+        request_timeout: Optional[int] = None,
+        api_key: Optional[str] = None,
+    ):
         """
         Initialize Ollama client.
 
         Args:
-            base_url: Ollama server base URL
+            base_url: Ollama server base URL (local server or https://ollama.com)
             request_timeout: Timeout in seconds for API requests.
                 Generation calls use 3x this value. Defaults to the
                 REQUEST_TIMEOUT config value (MODULLE_REQUEST_TIMEOUT env var)
                 when not provided.
+            api_key: API key for Ollama Cloud (https://ollama.com). When set,
+                an 'Authorization: Bearer <key>' header is sent with every
+                request. Unneeded for local servers.
         """
         self.base_url = base_url.rstrip("/")
         self.api_url = f"{self.base_url}/api"
         self.request_timeout = request_timeout or REQUEST_TIMEOUT
+        self.api_key = api_key
+        self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
 
     def health_check(self):
         """
@@ -41,7 +51,7 @@ class OllamaClient:
             True if server is available, False otherwise
         """
         try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            response = requests.get(f"{self.base_url}/api/tags", timeout=5, headers=self._headers)
             response.raise_for_status()
             logger.info("Ollama server is available")
             return True
@@ -57,7 +67,9 @@ class OllamaClient:
             List of model names, or empty list on error
         """
         try:
-            response = requests.get(f"{self.api_url}/tags", timeout=self.request_timeout)
+            response = requests.get(
+                f"{self.api_url}/tags", timeout=self.request_timeout, headers=self._headers
+            )
             response.raise_for_status()
             data = response.json()
             models = [model["name"] for model in data.get("models", [])]
@@ -100,6 +112,7 @@ class OllamaClient:
                 f"{self.api_url}/generate",
                 json=payload,
                 timeout=self.request_timeout * 3,  # Generation needs longer than health/list calls
+                headers=self._headers,
             )
 
             # Check for errors and try to get detailed error message from Ollama
@@ -147,7 +160,10 @@ class OllamaClient:
 
             logger.debug(f"Sending chat request to Ollama model: {model}")
             response = requests.post(
-                f"{self.api_url}/chat", json=payload, timeout=self.request_timeout * 3
+                f"{self.api_url}/chat",
+                json=payload,
+                timeout=self.request_timeout * 3,
+                headers=self._headers,
             )
 
             # Check for errors and try to get detailed error message from Ollama
@@ -222,7 +238,10 @@ class OllamaClient:
             logger.debug(f"Available tools: {[t['function']['name'] for t in tools]}")
 
             response = requests.post(
-                f"{self.api_url}/chat", json=payload, timeout=self.request_timeout * 3
+                f"{self.api_url}/chat",
+                json=payload,
+                timeout=self.request_timeout * 3,
+                headers=self._headers,
             )
 
             # Check for errors
@@ -242,7 +261,9 @@ class OllamaClient:
 
             data = response.json()
             message = data.get("message", {})
-            content = clean_response(message.get("content", ""))
+            # Cloud responses may return content as null/whitespace when the
+            # model emits only tool calls; guard len() below.
+            content = clean_response(message.get("content") or "")
             tool_calls_raw = message.get("tool_calls", [])
 
             # Parse tool calls
@@ -262,7 +283,9 @@ class OllamaClient:
             # Determine finish reason
             finish_reason = "tool_calls" if tool_calls else "stop"
 
-            logger.debug(f"Generated {len(content)} characters, finish_reason: {finish_reason}")
+            logger.debug(
+                f"Generated {len(content or '')} characters, finish_reason: {finish_reason}"
+            )
 
             return {
                 "content": content if content else None,
@@ -343,6 +366,7 @@ class OllamaClient:
                 f"{self.base_url}/v1/systemone",
                 json=payload,
                 timeout=timeout if timeout is not None else self.request_timeout * 3,
+                headers=self._headers,
             )
 
             # Check for errors and try to get detailed error message from Ollama

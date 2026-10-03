@@ -16,6 +16,9 @@ You build your application logic (summarization, translation, classification, et
 - **Ollama** - Run LLMs locally
 - **LM Studio** - User-friendly local LLM server
 
+### Ollama Cloud (API-based)
+- **Ollama Cloud** - Same API, remote models via [ollama.com](https://ollama.com) (API key from [ollama.com/settings/keys](https://ollama.com/settings/keys))
+
 ### Cloud (API-based)
 - **OpenAI** - GPT-4o, GPT-4o-mini, etc.
 - **Google Gemini** - Gemini 1.5 Flash/Pro
@@ -170,6 +173,9 @@ Change providers by changing **one parameter**:
 # Development: Use free local Ollama
 _, processor, _ = create_ai_client('ollama', text_model='llama2')
 
+# Ollama Cloud: remote models, no local install (OLLAMA_API_KEY env var or key param)
+_, processor, _ = create_ai_client('ollama_cloud', text_model='glm-5.3-flash', api_key='...')
+
 # Production: Switch to OpenAI (same API!)
 _, processor, _ = create_ai_client('openai', text_model='gpt-4o-mini', api_key='...')
 
@@ -255,6 +261,10 @@ See `.modulle.json.example` in the repository for a complete example with all pr
 export OLLAMA_BASE_URL="http://localhost:11434"
 export OLLAMA_TEXT_MODEL="llama2"
 
+# Ollama Cloud (https://ollama.com - model names without the :cloud suffix, e.g. glm-5.3-flash)
+export OLLAMA_API_KEY="your-api-key"
+export OLLAMA_CLOUD_TEXT_MODEL="glm-5.3-flash"
+
 # OpenAI (cloud)
 export OPENAI_API_KEY="your-api-key"
 export OPENAI_TEXT_MODEL="gpt-4o-mini"
@@ -338,11 +348,11 @@ See [docs/DECISION_MODELS.md](docs/DECISION_MODELS.md) for all question types
 
 ## 📊 Provider Comparison
 
-| Feature | Ollama | LM Studio | OpenAI | Gemini | Claude |
-|---------|--------|-----------|--------|--------|--------|
-| **Cost** | Free | Free | Paid | Free tier + Paid | Paid |
-| **Privacy** | ✅ Local | ✅ Local | ❌ Cloud | ❌ Cloud | ❌ Cloud |
-| **Internet** | Setup only | Setup only | Required | Required | Required |
+| Feature | Ollama | Ollama Cloud | LM Studio | OpenAI | Gemini | Claude |
+|---------|--------|--------------|-----------|--------|--------|--------|
+| **Cost** | Free | Paid/plan | Free | Paid | Free tier + Paid | Paid |
+| **Privacy** | ✅ Local | ❌ Cloud | ✅ Local | ❌ Cloud | ❌ Cloud | ❌ Cloud |
+| **Internet** | Setup only | Required | Setup only | Required | Required | Required |
 | **Best For** | Privacy, dev | Beginners | Production | Cost-effective | Premium quality |
 
 ## 🔒 Privacy

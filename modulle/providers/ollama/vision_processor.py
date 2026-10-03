@@ -4,11 +4,14 @@ Generic vision processing with Ollama.
 Provides image analysis capabilities using Ollama vision models.
 All application logic should be built on top of this generic interface.
 """
+
 from typing import Optional
-from .client import OllamaClient
-from modulle.utils.logging_config import get_logger
-from modulle.config import DEFAULT_TEMPERATURE
+
 from modulle.base import BaseVisionProcessor
+from modulle.config import DEFAULT_TEMPERATURE
+from modulle.utils.logging_config import get_logger
+
+from .client import OllamaClient
 
 logger = get_logger(__name__.replace("modulle.providers.", ""))
 
@@ -21,7 +24,13 @@ class OllamaVisionProcessor(BaseVisionProcessor):
     Applications build domain-specific image processing by crafting prompts.
     """
 
-    def __init__(self, model: str, base_url: Optional[str] = None, request_timeout: Optional[int] = None):
+    def __init__(
+        self,
+        model: str,
+        base_url: Optional[str] = None,
+        request_timeout: Optional[int] = None,
+        api_key: Optional[str] = None,
+    ):
         """
         Initialize Ollama vision processor.
 
@@ -29,9 +38,15 @@ class OllamaVisionProcessor(BaseVisionProcessor):
             model: Ollama vision model name (llava, bakllava, etc.)
             base_url: Ollama server URL (optional, uses default if not provided)
             request_timeout: Timeout in seconds for API requests (optional, uses config default)
+            api_key: Ollama Cloud API key (https://ollama.com only; optional)
         """
         self.model = model
-        self.client = OllamaClient(base_url=base_url, request_timeout=request_timeout) if base_url else OllamaClient(request_timeout=request_timeout)
+        if base_url or api_key:
+            self.client = OllamaClient(
+                base_url=base_url, request_timeout=request_timeout, api_key=api_key
+            )
+        else:
+            self.client = OllamaClient(request_timeout=request_timeout)
         logger.info(f"Ollama vision processor initialized with model: {model}")
 
     def analyze_image(
@@ -39,7 +54,7 @@ class OllamaVisionProcessor(BaseVisionProcessor):
         image_data: str,
         prompt: str,
         temperature: float = DEFAULT_TEMPERATURE,
-        max_tokens: Optional[int] = None
+        max_tokens: Optional[int] = None,
     ) -> Optional[str]:
         """
         Analyze an image with a custom prompt using Ollama.
@@ -77,10 +92,7 @@ class OllamaVisionProcessor(BaseVisionProcessor):
         """
         try:
             response = self.client.generate(
-                model=self.model,
-                prompt=prompt,
-                temperature=temperature,
-                images=[image_data]
+                model=self.model, prompt=prompt, temperature=temperature, images=[image_data]
             )
 
             if not response:

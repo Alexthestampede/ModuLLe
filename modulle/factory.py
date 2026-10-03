@@ -4,32 +4,35 @@ Factory for creating AI client and text processor instances.
 This module provides factory functions to create the appropriate AI client
 and text processor based on the configured provider (Ollama, LM Studio, OpenAI, Gemini, Claude).
 """
-from typing import Tuple, Optional
-from .utils.logging_config import get_logger
-from .base import BaseAIClient, BaseTextProcessor
+
+from typing import Optional, Tuple
+
 from . import config
+from .base import BaseAIClient, BaseTextProcessor
+from .utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
 def create_ai_client(
-    provider: str = 'ollama',
+    provider: str = "ollama",
     text_model: Optional[str] = None,
     vision_model: Optional[str] = None,
     base_url: Optional[str] = None,
     api_key: Optional[str] = None,
     request_timeout: Optional[int] = None,
-    **kwargs
+    **kwargs,
 ) -> Tuple[BaseAIClient, BaseTextProcessor, Optional[object]]:
     """
     Create AI client, text processor, and vision processor instances based on specified provider.
 
     Args:
-        provider: AI provider name ('ollama', 'lm_studio', 'openai', 'gemini', 'claude')
-        text_model: Model name for text processing (optional, uses config default if not provided)
-        vision_model: Model name for vision processing (optional, uses config default if not provided)
-        base_url: Base URL for local providers (Ollama, LM Studio)
-        api_key: API key for cloud providers (OpenAI, Gemini, Claude)
+        provider: AI provider name ('ollama', 'ollama_cloud', 'lm_studio',
+            'openai', 'gemini', 'claude')
+        text_model: Model name for text processing (optional, uses config default)
+        vision_model: Model name for vision processing (optional, uses config default)
+        base_url: Base URL for local providers (Ollama, LM Studio) or https://ollama.com
+        api_key: API key for cloud providers (OpenAI, Gemini, Claude, Ollama Cloud)
         request_timeout: Timeout in seconds for API requests (optional, uses config default).
             Generation calls typically use 3x this value.
         **kwargs: Additional provider-specific arguments
@@ -60,7 +63,7 @@ def create_ai_client(
     provider = provider.lower()
     logger.info(f"Creating AI client for provider: {provider}")
 
-    if provider == 'ollama':
+    if provider == "ollama":
         from .providers.ollama.client import OllamaClient
         from .providers.ollama.text_processor import OllamaTextClient
         from .providers.ollama.vision_processor import OllamaVisionClient
@@ -73,13 +76,64 @@ def create_ai_client(
         logger.info(f"Ollama config - URL: {base_url}, Text: {text_model}, Vision: {vision_model}")
 
         client = OllamaClient(base_url=base_url, request_timeout=request_timeout)
-        text_processor = OllamaTextClient(model=text_model, base_url=base_url, request_timeout=request_timeout)
-        vision_processor = OllamaVisionClient(model=vision_model, base_url=base_url, request_timeout=request_timeout) if vision_model else None
+        text_processor = OllamaTextClient(
+            model=text_model, base_url=base_url, request_timeout=request_timeout
+        )
+        vision_processor = (
+            OllamaVisionClient(
+                model=vision_model, base_url=base_url, request_timeout=request_timeout
+            )
+            if vision_model
+            else None
+        )
 
         logger.info("Ollama client initialized successfully")
         return client, text_processor, vision_processor
 
-    elif provider == 'lm_studio' or provider == 'lmstudio':
+    elif provider == "ollama_cloud" or provider == "ollamacloud":
+        from .providers.ollama.client import OllamaClient
+        from .providers.ollama.text_processor import OllamaTextClient
+        from .providers.ollama.vision_processor import OllamaVisionClient
+
+        # Get configuration with defaults
+        base_url = base_url or config.OLLAMA_CLOUD_BASE_URL
+        api_key = api_key or config.OLLAMA_API_KEY
+        text_model = text_model or config.OLLAMA_CLOUD_TEXT_MODEL
+        vision_model = vision_model or config.OLLAMA_CLOUD_VISION_MODEL
+
+        if not api_key:
+            error_msg = (
+                "Ollama Cloud provider requires an API key. Please provide api_key "
+                "parameter or set OLLAMA_API_KEY environment variable. Get your key "
+                "from: https://ollama.com/settings/keys"
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        logger.info(
+            f"Ollama Cloud config - URL: {base_url}, Text: {text_model}, "
+            f"Vision: {vision_model or 'none'}"
+        )
+
+        client = OllamaClient(base_url=base_url, request_timeout=request_timeout, api_key=api_key)
+        text_processor = OllamaTextClient(
+            model=text_model, base_url=base_url, request_timeout=request_timeout, api_key=api_key
+        )
+        vision_processor = (
+            OllamaVisionClient(
+                model=vision_model,
+                base_url=base_url,
+                request_timeout=request_timeout,
+                api_key=api_key,
+            )
+            if vision_model
+            else None
+        )
+
+        logger.info("Ollama Cloud client initialized successfully")
+        return client, text_processor, vision_processor
+
+    elif provider == "lm_studio" or provider == "lmstudio":
         from .providers.lm_studio.client import LMStudioClient
         from .providers.lm_studio.text_processor import LMStudioTextClient
         from .providers.lm_studio.vision_processor import LMStudioVisionClient
@@ -91,13 +145,17 @@ def create_ai_client(
         logger.info(f"LM Studio config - URL: {base_url}, Model: {text_model}")
 
         client = LMStudioClient(base_url=base_url, request_timeout=request_timeout)
-        text_processor = LMStudioTextClient(model=text_model, base_url=base_url, request_timeout=request_timeout)
-        vision_processor = LMStudioVisionClient(model=text_model, base_url=base_url, request_timeout=request_timeout)
+        text_processor = LMStudioTextClient(
+            model=text_model, base_url=base_url, request_timeout=request_timeout
+        )
+        vision_processor = LMStudioVisionClient(
+            model=text_model, base_url=base_url, request_timeout=request_timeout
+        )
 
         logger.info("LM Studio client initialized successfully")
         return client, text_processor, vision_processor
 
-    elif provider == 'openai':
+    elif provider == "openai":
         from .providers.openai.client import OpenAIClient
         from .providers.openai.text_processor import OpenAITextProcessor
         from .providers.openai.vision_processor import OpenAIVisionProcessor
@@ -119,13 +177,17 @@ def create_ai_client(
         logger.info(f"OpenAI config - Text: {text_model}, Vision: {vision_model}")
 
         client = OpenAIClient(api_key=api_key, request_timeout=request_timeout)
-        text_processor = OpenAITextProcessor(model=text_model, api_key=api_key, request_timeout=request_timeout)
-        vision_processor = OpenAIVisionProcessor(model=vision_model, api_key=api_key, request_timeout=request_timeout)
+        text_processor = OpenAITextProcessor(
+            model=text_model, api_key=api_key, request_timeout=request_timeout
+        )
+        vision_processor = OpenAIVisionProcessor(
+            model=vision_model, api_key=api_key, request_timeout=request_timeout
+        )
 
         logger.info("OpenAI client initialized successfully")
         return client, text_processor, vision_processor
 
-    elif provider == 'gemini':
+    elif provider == "gemini":
         from .providers.gemini.client import GeminiClient
         from .providers.gemini.text_processor import GeminiTextClient
         from .providers.gemini.vision_processor import GeminiVisionClient
@@ -147,13 +209,17 @@ def create_ai_client(
         logger.info(f"Gemini config - Text: {text_model}, Vision: {vision_model}")
 
         client = GeminiClient(api_key=api_key, request_timeout=request_timeout)
-        text_processor = GeminiTextClient(api_key=api_key, model=text_model, request_timeout=request_timeout)
-        vision_processor = GeminiVisionClient(api_key=api_key, model=vision_model, request_timeout=request_timeout)
+        text_processor = GeminiTextClient(
+            api_key=api_key, model=text_model, request_timeout=request_timeout
+        )
+        vision_processor = GeminiVisionClient(
+            api_key=api_key, model=vision_model, request_timeout=request_timeout
+        )
 
         logger.info("Gemini client initialized successfully")
         return client, text_processor, vision_processor
 
-    elif provider == 'claude' or provider == 'anthropic':
+    elif provider == "claude" or provider == "anthropic":
         from .providers.claude.client import ClaudeClient
         from .providers.claude.text_processor import ClaudeTextClient
         from .providers.claude.vision_processor import ClaudeVisionClient
@@ -175,16 +241,20 @@ def create_ai_client(
         logger.info(f"Claude config - Text: {text_model}, Vision: {vision_model}")
 
         client = ClaudeClient(api_key=api_key, request_timeout=request_timeout)
-        text_processor = ClaudeTextClient(api_key=api_key, model=text_model, request_timeout=request_timeout)
-        vision_processor = ClaudeVisionClient(api_key=api_key, model=vision_model, request_timeout=request_timeout)
+        text_processor = ClaudeTextClient(
+            api_key=api_key, model=text_model, request_timeout=request_timeout
+        )
+        vision_processor = ClaudeVisionClient(
+            api_key=api_key, model=vision_model, request_timeout=request_timeout
+        )
 
         logger.info("Claude client initialized successfully")
         return client, text_processor, vision_processor
 
     else:
         error_msg = (
-            f"Unknown AI provider: {provider}. "
-            f"Supported providers: 'ollama', 'lm_studio', 'openai', 'gemini', 'claude'"
+            f"Unknown AI provider: {provider}. Supported providers: "
+            f"'ollama', 'ollama_cloud', 'lm_studio', 'openai', 'gemini', 'claude'"
         )
         logger.error(error_msg)
         raise ValueError(error_msg)

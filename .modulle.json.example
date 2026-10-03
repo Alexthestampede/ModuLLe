@@ -4,9 +4,14 @@
   "provider": "ollama",
 
   "_comment_ollama": "=== Ollama Configuration (local, free) ===",
-  "ollama_base_url": "http://localhost:11434",
-  "ollama_text_model": "llama2",
-  "ollama_vision_model": "llava",
+    "ollama_base_url": "http://localhost:11434",
+    "ollama_text_model": "llama2",
+    "ollama_vision_model": "llava",
+    "_comment_ollama_cloud": "=== Ollama Cloud Configuration (https://ollama.com) ===",
+    "ollama_cloud_base_url": "https://ollama.com",
+    "ollama_api_key": "",
+    "ollama_cloud_text_model": "glm-5.3-flash",
+    "ollama_cloud_vision_model": "",
 
   "_comment_lm_studio": "=== LM Studio Configuration (local, free) ===",
   "lm_studio_base_url": "http://localhost:1234",
