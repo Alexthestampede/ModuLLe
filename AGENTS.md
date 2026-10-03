@@ -24,7 +24,7 @@ python3 test_basic.py          # legacy structure check — gitignored, may not 
 - Decision models (clef / clef-flash) are also per-provider: `OllamaClient.system_one()` hits Ollama's `/v1/systemone` endpoint (requires Ollama >= 0.35.1). This is a separate endpoint from `generate()`/`chat()` — decision models do not work through those.
 - **Cloud model names differ from local**: on `ollama_cloud` (https://ollama.com, Bearer auth via `api_key`/`OLLAMA_API_KEY`) use the bare `/api/tags` name (e.g. `glm-5.3-flash`, **not** `glm-5.3-flash:cloud`). Decision models and `/v1/systemone` are local-only; no `Ollama-Cloud /v1/systemone` endpoint exists. Before any live test against Ollama Cloud, ask the user which model to use — list models via `GET https://ollama.com/api/tags`.
 - `modulle/web/` provides direct methods (search/fetch) via `WebAccessor`, plus prebuilt `SearchWebTool`/`FetchPageTool` in `modulle/web/tools.py` for a ToolRegistry.
-- Version appears in both `pyproject.toml` and `modulle/__init__.py __version__` — keep in sync.
+- Version format is `yyyymmdd.v` (e.g. `20261003.1` = first version on Oct 3 2026; increment `.v` for each release the same day). It appears in **three** places — `pyproject.toml`, `modulle/__init__.py __version__`, and `USER_AGENT` in `modulle/config.py`, plus the version assert in `tests/test_import.py` — keep all four in sync.
 - `DailyFeedSanity/`, `test_basic.py`, and old docs (`OVERVIEW.md`, `EXTRACTION_SUMMARY.md`, etc.) are **gitignored** — don't build on them; tracked docs are `README.md`, `REFACTORING.md`, `WEB_AND_TOOLS_README.md`, `docs/`, `examples/README.md`.
 
 ## Configuration

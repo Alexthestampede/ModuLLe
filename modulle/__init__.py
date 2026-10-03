@@ -23,7 +23,7 @@ Example usage:
     )
 """
 
-__version__ = "0.1.0"
+__version__ = "20261003.1"
 __author__ = "Extracted from DailyFeedSanity"
 
 from .base import BaseAIClient, BaseTextProcessor
