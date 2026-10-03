@@ -18,6 +18,7 @@ def create_ai_client(
     vision_model: Optional[str] = None,
     base_url: Optional[str] = None,
     api_key: Optional[str] = None,
+    request_timeout: Optional[int] = None,
     **kwargs
 ) -> Tuple[BaseAIClient, BaseTextProcessor, Optional[object]]:
     """
@@ -29,6 +30,8 @@ def create_ai_client(
         vision_model: Model name for vision processing (optional, uses config default if not provided)
         base_url: Base URL for local providers (Ollama, LM Studio)
         api_key: API key for cloud providers (OpenAI, Gemini, Claude)
+        request_timeout: Timeout in seconds for API requests (optional, uses config default).
+            Generation calls typically use 3x this value.
         **kwargs: Additional provider-specific arguments
 
     Returns:
@@ -69,9 +72,9 @@ def create_ai_client(
 
         logger.info(f"Ollama config - URL: {base_url}, Text: {text_model}, Vision: {vision_model}")
 
-        client = OllamaClient(base_url=base_url)
-        text_processor = OllamaTextClient(model=text_model, base_url=base_url)
-        vision_processor = OllamaVisionClient(model=vision_model, base_url=base_url) if vision_model else None
+        client = OllamaClient(base_url=base_url, request_timeout=request_timeout)
+        text_processor = OllamaTextClient(model=text_model, base_url=base_url, request_timeout=request_timeout)
+        vision_processor = OllamaVisionClient(model=vision_model, base_url=base_url, request_timeout=request_timeout) if vision_model else None
 
         logger.info("Ollama client initialized successfully")
         return client, text_processor, vision_processor
@@ -87,9 +90,9 @@ def create_ai_client(
 
         logger.info(f"LM Studio config - URL: {base_url}, Model: {text_model}")
 
-        client = LMStudioClient(base_url=base_url)
-        text_processor = LMStudioTextClient(model=text_model, base_url=base_url)
-        vision_processor = LMStudioVisionClient(model=text_model, base_url=base_url)
+        client = LMStudioClient(base_url=base_url, request_timeout=request_timeout)
+        text_processor = LMStudioTextClient(model=text_model, base_url=base_url, request_timeout=request_timeout)
+        vision_processor = LMStudioVisionClient(model=text_model, base_url=base_url, request_timeout=request_timeout)
 
         logger.info("LM Studio client initialized successfully")
         return client, text_processor, vision_processor
@@ -115,9 +118,9 @@ def create_ai_client(
 
         logger.info(f"OpenAI config - Text: {text_model}, Vision: {vision_model}")
 
-        client = OpenAIClient(api_key=api_key)
-        text_processor = OpenAITextProcessor(model=text_model, api_key=api_key)
-        vision_processor = OpenAIVisionProcessor(model=vision_model, api_key=api_key)
+        client = OpenAIClient(api_key=api_key, request_timeout=request_timeout)
+        text_processor = OpenAITextProcessor(model=text_model, api_key=api_key, request_timeout=request_timeout)
+        vision_processor = OpenAIVisionProcessor(model=vision_model, api_key=api_key, request_timeout=request_timeout)
 
         logger.info("OpenAI client initialized successfully")
         return client, text_processor, vision_processor
@@ -143,9 +146,9 @@ def create_ai_client(
 
         logger.info(f"Gemini config - Text: {text_model}, Vision: {vision_model}")
 
-        client = GeminiClient(api_key=api_key)
-        text_processor = GeminiTextClient(api_key=api_key, model=text_model)
-        vision_processor = GeminiVisionClient(api_key=api_key, model=vision_model)
+        client = GeminiClient(api_key=api_key, request_timeout=request_timeout)
+        text_processor = GeminiTextClient(api_key=api_key, model=text_model, request_timeout=request_timeout)
+        vision_processor = GeminiVisionClient(api_key=api_key, model=vision_model, request_timeout=request_timeout)
 
         logger.info("Gemini client initialized successfully")
         return client, text_processor, vision_processor
@@ -171,9 +174,9 @@ def create_ai_client(
 
         logger.info(f"Claude config - Text: {text_model}, Vision: {vision_model}")
 
-        client = ClaudeClient(api_key=api_key)
-        text_processor = ClaudeTextClient(api_key=api_key, model=text_model)
-        vision_processor = ClaudeVisionClient(api_key=api_key, model=vision_model)
+        client = ClaudeClient(api_key=api_key, request_timeout=request_timeout)
+        text_processor = ClaudeTextClient(api_key=api_key, model=text_model, request_timeout=request_timeout)
+        vision_processor = ClaudeVisionClient(api_key=api_key, model=vision_model, request_timeout=request_timeout)
 
         logger.info("Claude client initialized successfully")
         return client, text_processor, vision_processor

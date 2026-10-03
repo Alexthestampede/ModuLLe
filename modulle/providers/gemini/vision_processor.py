@@ -21,7 +21,7 @@ class GeminiVisionProcessor(BaseVisionProcessor):
     Applications build domain-specific image processing by crafting prompts.
     """
 
-    def __init__(self, model: str, api_key: str):
+    def __init__(self, model: str, api_key: str, request_timeout: Optional[int] = None):
         """
         Initialize Gemini vision processor.
 
@@ -33,7 +33,7 @@ class GeminiVisionProcessor(BaseVisionProcessor):
             Gemini 1.5 models have native multimodal capabilities
         """
         self.model = model
-        self.client = GeminiClient(api_key=api_key)
+        self.client = GeminiClient(api_key=api_key, request_timeout=request_timeout)
         logger.info(f"Gemini vision processor initialized with model: {model}")
 
     def analyze_image(

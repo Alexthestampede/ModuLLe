@@ -21,7 +21,7 @@ class ClaudeVisionProcessor(BaseVisionProcessor):
     Applications build domain-specific image processing by crafting prompts.
     """
 
-    def __init__(self, model: str, api_key: str):
+    def __init__(self, model: str, api_key: str, request_timeout: Optional[int] = None):
         """
         Initialize Claude vision processor.
 
@@ -33,7 +33,7 @@ class ClaudeVisionProcessor(BaseVisionProcessor):
             Claude 3.5 Sonnet and Claude 3 Opus have strong vision capabilities
         """
         self.model = model
-        self.client = ClaudeClient(api_key=api_key)
+        self.client = ClaudeClient(api_key=api_key, request_timeout=request_timeout)
         logger.info(f"Claude vision processor initialized with model: {model}")
 
     def analyze_image(

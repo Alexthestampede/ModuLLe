@@ -21,7 +21,7 @@ class ClaudeTextProcessor(BaseTextProcessor):
     Applications build domain-specific logic by crafting prompts.
     """
 
-    def __init__(self, model: str, api_key: str):
+    def __init__(self, model: str, api_key: str, request_timeout: Optional[int] = None):
         """
         Initialize Claude text processor.
 
@@ -30,7 +30,7 @@ class ClaudeTextProcessor(BaseTextProcessor):
             api_key: Anthropic API key
         """
         self.model = model
-        self.client = ClaudeClient(api_key=api_key)
+        self.client = ClaudeClient(api_key=api_key, request_timeout=request_timeout)
         logger.info(f"Claude text processor initialized with model: {model}")
 
     def generate(

@@ -21,7 +21,7 @@ class OpenAIVisionProcessor(BaseVisionProcessor):
     Applications build domain-specific image processing by crafting prompts.
     """
 
-    def __init__(self, model: str, api_key: Optional[str] = None):
+    def __init__(self, model: str, api_key: Optional[str] = None, request_timeout: Optional[int] = None):
         """
         Initialize OpenAI vision processor.
 
@@ -37,7 +37,7 @@ class OpenAIVisionProcessor(BaseVisionProcessor):
         """
         self.model = model
         try:
-            self.client = OpenAIClient(api_key=api_key)
+            self.client = OpenAIClient(api_key=api_key, request_timeout=request_timeout)
             logger.info(f"OpenAI vision processor initialized with model: {model}")
         except ValueError as e:
             logger.error(f"Failed to initialize OpenAI vision processor: {e}")

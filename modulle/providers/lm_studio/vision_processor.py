@@ -25,16 +25,17 @@ class LMStudioVisionProcessor(BaseVisionProcessor):
     Note: Requires a vision-capable model to be loaded in LM Studio.
     """
 
-    def __init__(self, model: str, base_url: Optional[str] = None):
+    def __init__(self, model: str, base_url: Optional[str] = None, request_timeout: Optional[int] = None):
         """
         Initialize LM Studio vision processor.
 
         Args:
             model: LM Studio model name (must be a vision-capable model)
             base_url: LM Studio server URL (optional, uses default if not provided)
+            request_timeout: Timeout in seconds for API requests (optional, uses config default)
         """
         self.model = model
-        self.client = LMStudioClient(base_url=base_url) if base_url else LMStudioClient()
+        self.client = LMStudioClient(base_url=base_url, request_timeout=request_timeout) if base_url else LMStudioClient(request_timeout=request_timeout)
         logger.info(f"LM Studio vision processor initialized with model: {model}")
 
     def analyze_image(

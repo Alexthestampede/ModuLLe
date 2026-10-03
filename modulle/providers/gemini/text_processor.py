@@ -21,7 +21,7 @@ class GeminiTextProcessor(BaseTextProcessor):
     Applications build domain-specific logic by crafting prompts.
     """
 
-    def __init__(self, model: str, api_key: str):
+    def __init__(self, model: str, api_key: str, request_timeout: Optional[int] = None):
         """
         Initialize Gemini text processor.
 
@@ -30,7 +30,7 @@ class GeminiTextProcessor(BaseTextProcessor):
             api_key: Google API key
         """
         self.model = model
-        self.client = GeminiClient(api_key=api_key)
+        self.client = GeminiClient(api_key=api_key, request_timeout=request_timeout)
         logger.info(f"Gemini text processor initialized with model: {model}")
 
     def generate(

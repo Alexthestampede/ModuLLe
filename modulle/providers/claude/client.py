@@ -22,7 +22,7 @@ class ClaudeClient(BaseAIClient):
 
     API_VERSION = "2023-06-01"
 
-    def __init__(self, api_key: str, base_url: str = "https://api.anthropic.com/v1"):
+    def __init__(self, api_key: str, base_url: str = "https://api.anthropic.com/v1", request_timeout: Optional[int] = None):
         """
         Initialize Claude client.
 
@@ -35,6 +35,7 @@ class ClaudeClient(BaseAIClient):
 
         self.api_key = api_key
         self.base_url = base_url.rstrip('/')
+        self.request_timeout = request_timeout or REQUEST_TIMEOUT
 
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for API requests."""
@@ -131,7 +132,7 @@ class ClaudeClient(BaseAIClient):
             if system:
                 payload["system"] = system
 
-            response = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT)
+            response = requests.post(url, headers=headers, json=payload, timeout=self.request_timeout)
             response.raise_for_status()
 
             data = response.json()
@@ -196,7 +197,7 @@ class ClaudeClient(BaseAIClient):
             if system_prompt:
                 payload["system"] = system_prompt
 
-            response = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT)
+            response = requests.post(url, headers=headers, json=payload, timeout=self.request_timeout)
             response.raise_for_status()
 
             data = response.json()
@@ -306,7 +307,7 @@ class ClaudeClient(BaseAIClient):
             logger.debug(f"Sending chat with tools request to Claude model: {model}")
             logger.debug(f"Available tools: {[t['name'] for t in tools]}")
 
-            response = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT * 3)
+            response = requests.post(url, headers=headers, json=payload, timeout=self.request_timeout * 3)
             response.raise_for_status()
 
             data = response.json()
@@ -415,7 +416,7 @@ class ClaudeClient(BaseAIClient):
             if system:
                 payload["system"] = system
 
-            response = requests.post(url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT * 2)
+            response = requests.post(url, headers=headers, json=payload, timeout=self.request_timeout * 2)
             response.raise_for_status()
 
             data = response.json()

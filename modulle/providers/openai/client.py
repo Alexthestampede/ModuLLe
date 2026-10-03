@@ -22,7 +22,7 @@ class OpenAIClient(BaseAIClient):
     AI providers.
     """
 
-    def __init__(self, api_key: Optional[str] = None, base_url: str = "https://api.openai.com/v1"):
+    def __init__(self, api_key: Optional[str] = None, base_url: str = "https://api.openai.com/v1", request_timeout: Optional[int] = None):
         """
         Initialize OpenAI client.
 
@@ -45,6 +45,7 @@ class OpenAIClient(BaseAIClient):
             raise ValueError(error_msg)
 
         self.base_url = base_url.rstrip('/')
+        self.request_timeout = request_timeout or REQUEST_TIMEOUT
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -185,7 +186,7 @@ class OpenAIClient(BaseAIClient):
                 f"{self.base_url}/chat/completions",
                 headers=self.headers,
                 json=payload,
-                timeout=REQUEST_TIMEOUT * 3  # Longer timeout for generation
+                timeout=self.request_timeout * 3  # Longer timeout for generation
             )
 
             # Handle rate limiting
@@ -271,7 +272,7 @@ class OpenAIClient(BaseAIClient):
                 f"{self.base_url}/chat/completions",
                 headers=self.headers,
                 json=payload,
-                timeout=REQUEST_TIMEOUT * 3
+                timeout=self.request_timeout * 3
             )
 
             # Handle errors

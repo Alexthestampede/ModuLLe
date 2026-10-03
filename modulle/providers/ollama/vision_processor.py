@@ -21,16 +21,17 @@ class OllamaVisionProcessor(BaseVisionProcessor):
     Applications build domain-specific image processing by crafting prompts.
     """
 
-    def __init__(self, model: str, base_url: Optional[str] = None):
+    def __init__(self, model: str, base_url: Optional[str] = None, request_timeout: Optional[int] = None):
         """
         Initialize Ollama vision processor.
 
         Args:
             model: Ollama vision model name (llava, bakllava, etc.)
             base_url: Ollama server URL (optional, uses default if not provided)
+            request_timeout: Timeout in seconds for API requests (optional, uses config default)
         """
         self.model = model
-        self.client = OllamaClient(base_url=base_url) if base_url else OllamaClient()
+        self.client = OllamaClient(base_url=base_url, request_timeout=request_timeout) if base_url else OllamaClient(request_timeout=request_timeout)
         logger.info(f"Ollama vision processor initialized with model: {model}")
 
     def analyze_image(

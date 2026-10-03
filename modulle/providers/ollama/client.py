@@ -8,6 +8,7 @@ import requests
 
 from modulle.config import OLLAMA_BASE_URL, REQUEST_TIMEOUT
 from modulle.utils.logging_config import get_logger
+from modulle.utils.response_cleaner import clean_response
 
 logger = get_logger(__name__.replace("modulle.providers.", ""))
 
@@ -17,15 +18,20 @@ class OllamaClient:
     Base client for interacting with Ollama API.
     """
 
-    def __init__(self, base_url=OLLAMA_BASE_URL):
+    def __init__(self, base_url=OLLAMA_BASE_URL, request_timeout: Optional[int] = None):
         """
         Initialize Ollama client.
 
         Args:
             base_url: Ollama server base URL
+            request_timeout: Timeout in seconds for API requests.
+                Generation calls use 3x this value. Defaults to the
+                REQUEST_TIMEOUT config value (MODULLE_REQUEST_TIMEOUT env var)
+                when not provided.
         """
         self.base_url = base_url.rstrip("/")
         self.api_url = f"{self.base_url}/api"
+        self.request_timeout = request_timeout or REQUEST_TIMEOUT
 
     def health_check(self):
         """
@@ -51,7 +57,7 @@ class OllamaClient:
             List of model names, or empty list on error
         """
         try:
-            response = requests.get(f"{self.api_url}/tags", timeout=REQUEST_TIMEOUT)
+            response = requests.get(f"{self.api_url}/tags", timeout=self.request_timeout)
             response.raise_for_status()
             data = response.json()
             models = [model["name"] for model in data.get("models", [])]
@@ -93,7 +99,7 @@ class OllamaClient:
             response = requests.post(
                 f"{self.api_url}/generate",
                 json=payload,
-                timeout=REQUEST_TIMEOUT * 3,  # Longer timeout for generation
+                timeout=self.request_timeout * 3,  # Generation needs longer than health/list calls
             )
 
             # Check for errors and try to get detailed error message from Ollama
@@ -107,9 +113,9 @@ class OllamaClient:
                 return None
 
             data = response.json()
-            generated_text = data.get("response", "").strip()
+            generated_text = clean_response(data.get("response", ""))
 
-            logger.debug(f"Generated {len(generated_text)} characters")
+            logger.debug(f"Generated {len(generated_text or '')} characters")
             return generated_text
 
         except requests.exceptions.RequestException as e:
@@ -141,7 +147,7 @@ class OllamaClient:
 
             logger.debug(f"Sending chat request to Ollama model: {model}")
             response = requests.post(
-                f"{self.api_url}/chat", json=payload, timeout=REQUEST_TIMEOUT * 3
+                f"{self.api_url}/chat", json=payload, timeout=self.request_timeout * 3
             )
 
             # Check for errors and try to get detailed error message from Ollama
@@ -156,9 +162,9 @@ class OllamaClient:
 
             data = response.json()
             message = data.get("message", {})
-            content = message.get("content", "").strip()
+            content = clean_response(message.get("content", ""))
 
-            logger.debug(f"Generated {len(content)} characters")
+            logger.debug(f"Generated {len(content or '')} characters")
             return content
 
         except requests.exceptions.RequestException as e:
@@ -216,7 +222,7 @@ class OllamaClient:
             logger.debug(f"Available tools: {[t['function']['name'] for t in tools]}")
 
             response = requests.post(
-                f"{self.api_url}/chat", json=payload, timeout=REQUEST_TIMEOUT * 3
+                f"{self.api_url}/chat", json=payload, timeout=self.request_timeout * 3
             )
 
             # Check for errors
@@ -236,7 +242,7 @@ class OllamaClient:
 
             data = response.json()
             message = data.get("message", {})
-            content = message.get("content", "").strip()
+            content = clean_response(message.get("content", ""))
             tool_calls_raw = message.get("tool_calls", [])
 
             # Parse tool calls
@@ -298,7 +304,7 @@ class OllamaClient:
             images: Optional list of base64-encoded PNG/JPEG/WebP images shared
                 by all questions (URLs and data URLs are not supported)
             keep_alive: Optional keep-alive duration for the model
-            timeout: Request timeout in seconds (defaults to REQUEST_TIMEOUT * 3)
+            timeout: Request timeout in seconds (defaults to request_timeout * 3)
 
         Returns:
             Dict with keys:
@@ -336,7 +342,7 @@ class OllamaClient:
             response = requests.post(
                 f"{self.base_url}/v1/systemone",
                 json=payload,
-                timeout=timeout if timeout is not None else REQUEST_TIMEOUT * 3,
+                timeout=timeout if timeout is not None else self.request_timeout * 3,
             )
 
             # Check for errors and try to get detailed error message from Ollama

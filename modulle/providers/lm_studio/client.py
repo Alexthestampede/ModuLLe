@@ -21,15 +21,17 @@ class LMStudioClient(BaseAIClient):
     the /v1/chat/completions endpoint.
     """
 
-    def __init__(self, base_url=LM_STUDIO_BASE_URL):
+    def __init__(self, base_url=LM_STUDIO_BASE_URL, request_timeout: Optional[int] = None):
         """
         Initialize LM Studio client.
 
         Args:
             base_url: LM Studio server base URL
+            request_timeout: Timeout in seconds for API requests (optional, uses config default)
         """
         self.base_url = base_url.rstrip('/')
         self.api_url = f"{self.base_url}/v1"
+        self.request_timeout = request_timeout or REQUEST_TIMEOUT
 
     def health_check(self) -> bool:
         """
@@ -55,7 +57,7 @@ class LMStudioClient(BaseAIClient):
             List of model names, or empty list on error
         """
         try:
-            response = requests.get(f"{self.api_url}/models", timeout=REQUEST_TIMEOUT)
+            response = requests.get(f"{self.api_url}/models", timeout=self.request_timeout)
             response.raise_for_status()
             data = response.json()
 
@@ -160,7 +162,7 @@ class LMStudioClient(BaseAIClient):
             response = requests.post(
                 f"{self.api_url}/chat/completions",
                 json=payload,
-                timeout=REQUEST_TIMEOUT * 3  # Longer timeout for generation
+                timeout=self.request_timeout * 3  # Longer timeout for generation
             )
             response.raise_for_status()
 
@@ -233,7 +235,7 @@ class LMStudioClient(BaseAIClient):
             response = requests.post(
                 f"{self.api_url}/chat/completions",
                 json=payload,
-                timeout=REQUEST_TIMEOUT * 3
+                timeout=self.request_timeout * 3
             )
             response.raise_for_status()
 
