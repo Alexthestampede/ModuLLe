@@ -1,10 +1,12 @@
 """High-level interface for web access."""
 
-from typing import Optional, List, Dict, Any
-from .fetcher import WebFetcher
-from .search import create_searcher, SearchBackend
-from .converter import HTMLConverter
+from typing import Any, Dict, List, Optional
+
 from modulle.utils.logging_config import get_logger
+
+from .converter import HTMLConverter
+from .fetcher import WebFetcher
+from .search import SearchBackend, create_searcher
 
 logger = get_logger(__name__)
 
@@ -26,7 +28,7 @@ class WebAccessor:
     def __init__(
         self,
         search_backend: SearchBackend = SearchBackend.DUCKDUCKGO,
-        search_api_key: Optional[str] = None
+        search_api_key: Optional[str] = None,
     ):
         """
         Initialize web accessor.
@@ -39,7 +41,7 @@ class WebAccessor:
         self.searcher = create_searcher(search_backend, search_api_key)
         self.converter = HTMLConverter()
 
-    def fetch_page(self, url: str, format: str = 'text') -> Optional[str]:
+    def fetch_page(self, url: str, format: str = "text") -> Optional[str]:
         """
         Fetch web page content.
 
@@ -58,19 +60,19 @@ class WebAccessor:
         if not page_data:
             return None
 
-        if format == 'text':
-            return page_data['text']
-        elif format == 'markdown':
-            return self.converter.html_to_markdown(page_data['html'])
-        elif format == 'html':
-            return page_data['html']
-        elif format == 'full':
+        if format == "text":
+            return page_data["text"]
+        elif format == "markdown":
+            return self.converter.html_to_markdown(self.fetcher.clean_html(page_data["html"]))
+        elif format == "html":
+            return page_data["html"]
+        elif format == "full":
             return page_data
         else:
             logger.warning(f"Unknown format '{format}', defaulting to text")
-            return page_data['text']
+            return page_data["text"]
 
-    def fetch_article(self, url: str, format: str = 'text') -> Optional[str]:
+    def fetch_article(self, url: str, format: str = "text") -> Optional[str]:
         """
         Fetch main article content from a page using heuristics.
 
@@ -85,11 +87,11 @@ class WebAccessor:
         if not article_text:
             return None
 
-        if format == 'markdown':
-            # Fetch full page data to get HTML
+        if format == "markdown":
+            # Fetch full page data to get HTML, cleaned before conversion
             page_data = self.fetcher.fetch_page(url)
             if page_data:
-                return self.converter.html_to_markdown(page_data['html'])
+                return self.converter.html_to_markdown(self.fetcher.clean_html(page_data["html"]))
 
         return article_text
 
@@ -110,11 +112,7 @@ class WebAccessor:
         return self.searcher.search(query, max_results)
 
     def search_and_fetch(
-        self,
-        query: str,
-        num_pages: int = 3,
-        format: str = 'text',
-        max_content_length: int = 5000
+        self, query: str, num_pages: int = 3, format: str = "text", max_content_length: int = 5000
     ) -> List[Dict[str, str]]:
         """
         Search and fetch content from top results.
@@ -134,16 +132,14 @@ class WebAccessor:
 
         fetched_content = []
         for result in search_results[:num_pages]:
-            content = self.fetch_page(result['url'], format=format)
+            content = self.fetch_page(result["url"], format=format)
             if content:
                 # Truncate content to avoid overwhelming LLM context
                 if len(content) > max_content_length:
                     content = content[:max_content_length]
 
-                fetched_content.append({
-                    'url': result['url'],
-                    'title': result['title'],
-                    'content': content
-                })
+                fetched_content.append(
+                    {"url": result["url"], "title": result["title"], "content": content}
+                )
 
         return fetched_content
