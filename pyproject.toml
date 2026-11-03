@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modulle"
-version = "20261003.2"
+version = "20261103.1"
 description = "Modular LLM Provider Abstraction Layer - Unified interface for multiple AI providers"
 readme = "README.md"
 authors = [

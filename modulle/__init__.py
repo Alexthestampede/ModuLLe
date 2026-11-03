@@ -17,20 +17,21 @@ Example usage:
         base_url='http://localhost:11434'
     )
 
-    result = text_processor.generate_summary(
-        text="Your article text here",
-        title="Article Title"
+    result = text_processor.generate(
+        prompt="Summarize this text: ...",
+        system_prompt="You are a professional summarizer"
     )
 """
 
-__version__ = "20261003.2"
+__version__ = "20261103.1"
 __author__ = "Extracted from DailyFeedSanity"
 
 from .base import BaseAIClient, BaseTextProcessor
-from .factory import create_ai_client
+from .factory import create_ai_client, create_speech_processor
 
 __all__ = [
-    'BaseAIClient',
-    'BaseTextProcessor',
-    'create_ai_client',
+    "BaseAIClient",
+    "BaseTextProcessor",
+    "create_ai_client",
+    "create_speech_processor",
 ]

@@ -258,3 +258,67 @@ def create_ai_client(
         )
         logger.error(error_msg)
         raise ValueError(error_msg)
+
+
+def create_speech_processor(
+    provider: str = "ollama",
+    model: Optional[str] = None,
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    request_timeout: Optional[int] = None,
+):
+    """
+    Create a text-to-speech processor.
+
+    Speech is currently supported by Ollama only (Ollama >= 0.40.9) via the
+    OpenAI-compatible /v1/audio/speech endpoint. Speech models (e.g.
+    'phonon') cannot be used for chat/completion.
+
+    Args:
+        provider: 'ollama' (local) or 'ollama_cloud' (https://ollama.com)
+        model: Speech model name (optional, defaults to OLLAMA_SPEECH_MODEL,
+            i.e. 'lfm3-omni')
+        base_url: Server base URL (optional, uses provider default)
+        api_key: Ollama Cloud API key (ollama_cloud only; can also come from
+            OLLAMA_API_KEY)
+        request_timeout: Timeout in seconds for API requests (optional)
+
+    Returns:
+        OllamaSpeechProcessor instance
+
+    Raises:
+        ValueError: If the provider is not supported or a cloud API key is missing
+
+    Example:
+        >>> from modulle import create_speech_processor
+        >>> speech = create_speech_processor('ollama')
+        >>> speech.speak_to_file("Hello from ModuLLe", "hello.wav")
+    """
+    provider = provider.lower()
+
+    if provider in ("ollama", "ollama_cloud", "ollamacloud"):
+        from .providers.ollama.speech_processor import OllamaSpeechProcessor
+
+        if provider == "ollama":
+            base_url = base_url or config.OLLAMA_BASE_URL
+        else:
+            base_url = base_url or config.OLLAMA_CLOUD_BASE_URL
+            api_key = api_key or config.OLLAMA_API_KEY
+            if not api_key:
+                error_msg = (
+                    "Ollama Cloud provider requires an API key. Please provide "
+                    "api_key parameter or set OLLAMA_API_KEY environment variable."
+                )
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
+        return OllamaSpeechProcessor(
+            model=model or config.OLLAMA_SPEECH_MODEL,
+            base_url=base_url,
+            api_key=api_key,
+            request_timeout=request_timeout,
+        )
+
+    error_msg = f"Speech is currently supported for Ollama only; got provider '{provider}'"
+    logger.error(error_msg)
+    raise ValueError(error_msg)

@@ -7,6 +7,7 @@
     "ollama_base_url": "http://localhost:11434",
     "ollama_text_model": "llama2",
     "ollama_vision_model": "llava",
+    "ollama_speech_model": "lfm3-omni",
     "_comment_ollama_cloud": "=== Ollama Cloud Configuration (https://ollama.com) ===",
     "ollama_cloud_base_url": "https://ollama.com",
     "ollama_api_key": "",

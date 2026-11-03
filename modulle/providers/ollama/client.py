@@ -390,3 +390,115 @@ class OllamaClient:
         except Exception as e:
             logger.error(f"Unexpected error in Ollama systemone: {e}")
             return None
+
+    def speech(
+        self,
+        model: str,
+        text: str,
+        voice: str = "default",
+        response_format: str = "wav",
+        timeout: Optional[int] = None,
+    ) -> Optional[bytes]:
+        """
+        Generate speech audio from text (text-to-speech).
+
+        Uses Ollama's OpenAI-compatible ``/v1/audio/speech`` endpoint.
+        Requires a speech-capable model (e.g. ``phonon``) and Ollama >= 0.40.9.
+        Speech models can be used for nothing else: chat/completion requests
+        to them return a 400 error.
+
+        Args:
+            model: Speech model name (e.g. 'phonon')
+            text: Text to speak (max 4096 characters per request; see
+                ``OllamaSpeechProcessor`` for automatic chunking)
+            voice: Voice name (case-insensitive). 'default' uses the
+                checkpoint's own voice; ``list_voices()`` lists options.
+            response_format: 'wav' (16-bit mono 24 kHz) or 'pcm'
+                (raw 16-bit little-endian, mono, 24 kHz, no header)
+            timeout: Request timeout in seconds (defaults to
+                request_timeout * 3)
+
+        Returns:
+            Audio bytes, or None on error.
+
+        Example:
+            >>> audio = client.speech(model='phonon', text='Hello world')
+            >>> open('hello.wav', 'wb').write(audio)
+        """
+        if response_format not in ("wav", "pcm"):
+            raise ValueError("response_format must be 'wav' or 'pcm'")
+
+        try:
+            payload = {
+                "model": model,
+                "input": text,
+                "voice": voice,
+                "response_format": response_format,
+            }
+
+            logger.debug(f"Sending speech request to Ollama model: {model} ({voice})")
+            response = requests.post(
+                f"{self.base_url}/v1/audio/speech",
+                json=payload,
+                timeout=timeout if timeout is not None else self.request_timeout * 3,
+                headers=self._headers,
+            )
+
+            if not response.ok:
+                logger.error(f"Ollama speech failed: {_error_message(response)}")
+                return None
+
+            logger.debug(f"Generated {len(response.content)} bytes of audio")
+            return response.content
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ollama speech failed: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error in Ollama speech: {e}")
+            return None
+
+    def list_voices(self, model: str) -> List[str]:
+        """
+        List the voices a speech model supports (via /api/show).
+
+        Args:
+            model: Speech model name (e.g. 'phonon')
+
+        Returns:
+            List of voice names, or an empty list on error.
+        """
+        try:
+            response = requests.post(
+                f"{self.api_url}/show",
+                json={"model": model},
+                timeout=self.request_timeout,
+                headers=self._headers,
+            )
+            if not response.ok:
+                logger.error(f"Ollama show failed: {_error_message(response)}")
+                return []
+            data = response.json()
+            voices = data.get("voices") or []
+            return list(voices)
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to list voices for {model}: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error listing voices: {e}")
+            return []
+
+
+def _error_message(response) -> str:
+    """Extract a human-readable error from an Ollama/OpenAI-style response."""
+    try:
+        data = response.json()
+    except Exception:
+        return f"HTTP {response.status_code}"
+    if isinstance(data, dict):
+        error = data.get("error")
+        if isinstance(error, dict):
+            return error.get("message") or f"HTTP {response.status_code}"
+        if isinstance(error, str):
+            return error
+    return f"HTTP {response.status_code}"

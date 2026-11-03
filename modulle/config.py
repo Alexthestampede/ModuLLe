@@ -20,7 +20,7 @@ DEFAULT_TEMPERATURE = 0.7  # Balanced between deterministic and creative
 DEFAULT_MAX_TOKENS = None  # Let the provider decide
 
 # HTTP request settings (for cloud APIs and fetching resources)
-USER_AGENT = "ModuLLe/20261003.2 (AI Provider Abstraction)"
+USER_AGENT = "ModuLLe/20261103.1 (AI Provider Abstraction)"
 REQUEST_TIMEOUT = int(os.getenv("MODULLE_REQUEST_TIMEOUT", "60"))
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds
@@ -39,6 +39,9 @@ LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_TEXT_MODEL = os.getenv("OLLAMA_TEXT_MODEL", "llama2")
 OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "llava")
+# Text-to-speech model (Ollama >= 0.40.9). phonon requires MLX (Apple Silicon);
+# lfm3-omni has the speech capability and runs on CPU/GPU.
+OLLAMA_SPEECH_MODEL = os.getenv("OLLAMA_SPEECH_MODEL", "lfm3-omni")
 
 # Ollama Cloud (https://ollama.com - same API, remote models, Bearer auth)
 OLLAMA_CLOUD_BASE_URL = os.getenv("OLLAMA_CLOUD_BASE_URL", "https://ollama.com")
@@ -142,6 +145,7 @@ def apply_user_config():
         "ollama_base_url": "OLLAMA_BASE_URL",
         "ollama_text_model": "OLLAMA_TEXT_MODEL",
         "ollama_vision_model": "OLLAMA_VISION_MODEL",
+        "ollama_speech_model": "OLLAMA_SPEECH_MODEL",
         # Ollama Cloud
         "ollama_cloud_base_url": "OLLAMA_CLOUD_BASE_URL",
         "ollama_api_key": "OLLAMA_API_KEY",

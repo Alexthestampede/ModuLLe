@@ -346,6 +346,24 @@ print(result["answers"]["urgent"]["noul"])  # e.g. 0.95
 See [docs/DECISION_MODELS.md](docs/DECISION_MODELS.md) for all question types
 (`noul`, `choice`, `score`), image input, and `examples/decision_model.py`.
 
+## 🔊 Speech (Text-to-Speech)
+
+Ollama speech models can turn text into spoken audio through the
+OpenAI-compatible `/v1/audio/speech` endpoint (Ollama >= 0.40.9).
+
+```python
+from modulle import create_speech_processor
+
+speech = create_speech_processor("ollama", model="lfm3-omni")
+speech.speak_to_file("Hello from ModuLLe.", "speech.wav", voice="default")
+print(speech.list_voices())   # 39 voices for lfm3-omni
+```
+
+`lfm3-omni` runs on CPU/GPU; the dedicated `phonon` model requires Apple's
+MLX runtime (Apple Silicon). Long text (> 4,096 chars) is split and stitched
+automatically; output is WAV (16-bit mono 24 kHz) or raw PCM. See
+[docs/SPEECH.md](docs/SPEECH.md) and `examples/speech.py`.
+
 ## 📊 Provider Comparison
 
 | Feature | Ollama | Ollama Cloud | LM Studio | OpenAI | Gemini | Claude |
@@ -371,6 +389,8 @@ See [docs/DECISION_MODELS.md](docs/DECISION_MODELS.md) for all question types
 
 - **README.md** (this file) - API reference
 - **REFACTORING.md** - Design philosophy and refactoring details
+- **docs/DECISION_MODELS.md** - Decision models (clef / clef-flash)
+- **docs/SPEECH.md** - Text-to-speech (Ollama speech models)
 - **examples/README.md** - Example usage guide
 - **examples/article_summarizer.py** - Complete application example
 
